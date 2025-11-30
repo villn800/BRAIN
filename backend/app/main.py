@@ -1,11 +1,12 @@
 from pathlib import Path
 
 from fastapi import Depends, FastAPI
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from .api import auth, items
 from .core.config import get_settings
-from .database import Base, engine, get_db
+from .database import Base, get_db, get_engine
 from .schemas import HealthStatus
 
 
@@ -25,7 +26,7 @@ def create_app() -> FastAPI:
     def health(db: Session = Depends(get_db)) -> HealthStatus:
         db_status = "ok"
         try:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
         except Exception:
             db_status = "error"
 
@@ -36,7 +37,7 @@ def create_app() -> FastAPI:
 
     @application.on_event("startup")
     def on_startup() -> None:
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=get_engine())
 
     return application
 

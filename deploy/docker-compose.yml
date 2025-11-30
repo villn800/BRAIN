@@ -3,14 +3,16 @@ version: "3.9"
 services:
   db:
     image: postgres:14
+    env_file:
+      - ./.env
     environment:
-      POSTGRES_DB: brain
-      POSTGRES_USER: brain
-      POSTGRES_PASSWORD: brain
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
 
   backend:
     build:
@@ -18,16 +20,14 @@ services:
       dockerfile: Dockerfile.backend
     depends_on:
       - db
-    environment:
-      DATABASE_URL: postgresql://brain:brain@db:5432/brain
-      STORAGE_ROOT: /mnt/brain_vault
-      SECRET_KEY: change_me
+    env_file:
+      - ./.env
     volumes:
       # Bind your Unraid mount into the container in production.
       # For local dev, you can bind a ./storage directory instead.
       - ../storage:/mnt/brain_vault
     ports:
-      - "4000:4000"
+      - "${BACKEND_PORT:-4000}:4000"
 
 volumes:
   db_data:
