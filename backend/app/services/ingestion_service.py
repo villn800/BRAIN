@@ -98,8 +98,9 @@ def _download_primary_image(
 
     ext = _pick_extension(image_url, getattr(response, "headers", {}))
     rel_path = storage.build_image_path(uuid.uuid4(), variant="url", ext=ext)
-    absolute = storage.resolve_storage_path(rel_path)
-    absolute.write_bytes(content)
+    with storage.FileWriteGuard() as guard:
+        absolute = guard.track_relative(rel_path)
+        absolute.write_bytes(content)
     return rel_path, None
 
 

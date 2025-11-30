@@ -26,6 +26,10 @@ class Settings(BaseSettings):
         description="Used for signing auth tokens; override in production.",
     )
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=60 * 24, ge=5)
+    MAX_UPLOAD_BYTES: int = Field(default=25 * 1024 * 1024, ge=1024)
+    THUMBNAIL_SIZE: int = Field(default=512, ge=64, le=2048)
+    THUMBNAIL_QUALITY: int = Field(default=85, ge=10, le=95)
+    PDF_TEXT_MAX_CHARS: int = Field(default=20_000, ge=1_000)
 
     @field_validator("API_V1_PREFIX")
     @classmethod

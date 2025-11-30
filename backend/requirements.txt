@@ -13,3 +13,5 @@ python-dotenv
 pytest
 httpx
 beautifulsoup4
+Pillow
+PyPDF2

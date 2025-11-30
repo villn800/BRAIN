@@ -72,3 +72,38 @@ def normalize_relative_path(path: str | Path | None) -> str | None:
         raise ValueError("Attempted path traversal outside STORAGE_ROOT")
     return str(resolved.relative_to(base))
 
+
+class FileWriteGuard:
+    """Track files created during an operation and delete them if it fails."""
+
+    def __init__(self) -> None:
+        self._paths: list[Path] = []
+
+    def track_relative(self, relative_path: str, *, create_parents: bool = True) -> Path:
+        path = resolve_storage_path(relative_path, create_parents=create_parents)
+        self._paths.append(path)
+        return path
+
+    def track(self, path: Path) -> Path:
+        base = _storage_root()
+        resolved = path.resolve()
+        if not str(resolved).startswith(str(base)):
+            raise ValueError("Path is outside of STORAGE_ROOT")
+        self._paths.append(resolved)
+        return resolved
+
+    def cleanup(self) -> None:
+        for path in reversed(self._paths):
+            path.unlink(missing_ok=True)
+        self._paths.clear()
+
+    def __enter__(self) -> "FileWriteGuard":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if exc_type is not None:
+            self.cleanup()
+        else:
+            self._paths.clear()
+        return False
+
