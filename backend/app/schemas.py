@@ -69,6 +69,12 @@ class ItemTagsUpdate(BaseModel):
     tags: List[constr(strip_whitespace=True, min_length=1)] = Field(default_factory=list)
 
 
+class UrlIngestionRequest(BaseModel):
+    url: str = Field(min_length=1, strip_whitespace=True)
+    title: Optional[str] = Field(default=None, max_length=500)
+    tags: List[constr(strip_whitespace=True, min_length=1)] = Field(default_factory=list)
+
+
 class HealthStatus(BaseModel):
     status: str
     db: str

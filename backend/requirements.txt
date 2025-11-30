@@ -12,3 +12,4 @@ alembic
 python-dotenv
 pytest
 httpx
+beautifulsoup4

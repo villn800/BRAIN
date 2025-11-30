@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..core.security import get_current_user
 from ..database import get_db
-from ..services import items_service
+from ..services import ingestion_service, items_service
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -35,6 +35,16 @@ def list_items(
         limit=limit,
         offset=offset,
     )
+
+
+@router.post("/url", response_model=schemas.ItemOut, status_code=status.HTTP_201_CREATED)
+def create_item_from_url(
+    payload: schemas.UrlIngestionRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    item = ingestion_service.ingest_url(db, current_user, payload)
+    return item
 
 
 @router.get("/{item_id}", response_model=schemas.ItemOut)
