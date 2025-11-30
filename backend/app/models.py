@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -83,6 +84,9 @@ class Item(Base):
     text_content = Column(Text, nullable=True)
     thumbnail_path = Column(Text, nullable=True)
     file_path = Column(Text, nullable=True)
+    original_filename = Column(String(255), nullable=True)
+    content_type = Column(String(128), nullable=True)
+    file_size_bytes = Column(BigInteger, nullable=True)
     status = Column(Enum(ItemStatus), nullable=False, default=ItemStatus.ok, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(
@@ -129,6 +133,10 @@ class Tag(Base):
 
 class ItemTag(Base):
     __tablename__ = "item_tags"
+    __table_args__ = (
+        Index("ix_item_tags_tag_id", "tag_id"),
+        Index("ix_item_tags_item_id", "item_id"),
+    )
 
     item_id = Column(
         UUID(as_uuid=True),

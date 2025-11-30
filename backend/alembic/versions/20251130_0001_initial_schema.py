@@ -74,6 +74,9 @@ def upgrade() -> None:
         sa.Column("text_content", sa.Text(), nullable=True),
         sa.Column("thumbnail_path", sa.Text(), nullable=True),
         sa.Column("file_path", sa.Text(), nullable=True),
+        sa.Column("original_filename", sa.String(length=255), nullable=True),
+        sa.Column("content_type", sa.String(length=128), nullable=True),
+        sa.Column("file_size_bytes", sa.BigInteger(), nullable=True),
         sa.Column("status", item_status_enum, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=False), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=False), nullable=False),
@@ -109,11 +112,15 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["tag_id"], ["tags.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("item_id", "tag_id"),
     )
+    op.create_index("ix_item_tags_tag_id", "item_tags", ["tag_id"], unique=False)
+    op.create_index("ix_item_tags_item_id", "item_tags", ["item_id"], unique=False)
 
 
 def downgrade() -> None:
     bind = op.get_bind()
 
+    op.drop_index("ix_item_tags_item_id", table_name="item_tags")
+    op.drop_index("ix_item_tags_tag_id", table_name="item_tags")
     op.drop_table("item_tags")
     op.drop_index("ix_tags_user_id", table_name="tags")
     op.drop_index("ix_tags_name", table_name="tags")

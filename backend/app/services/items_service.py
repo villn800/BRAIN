@@ -2,11 +2,54 @@ from __future__ import annotations
 
 from typing import Iterable, List, Sequence
 from uuid import UUID
+from urllib.parse import urlparse
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..core import storage
+
+PATH_FIELDS = ("file_path", "thumbnail_path")
+
+
+def _derive_origin_domain(source_url: str | None) -> str | None:
+    if not source_url:
+        return None
+    parsed = urlparse(str(source_url))
+    if not parsed.netloc:
+        return None
+    return parsed.netloc.lower()
+
+
+def _normalize_domain(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip().lower()
+    return cleaned or None
+
+
+def _apply_common_normalization(data: dict[str, object]) -> None:
+    if "source_url" in data and data["source_url"] is not None:
+        data["source_url"] = str(data["source_url"])
+
+    if "origin_domain" in data:
+        data["origin_domain"] = _normalize_domain(data["origin_domain"])  # type: ignore[arg-type]
+    elif data.get("source_url"):
+        data["origin_domain"] = _derive_origin_domain(data.get("source_url"))
+
+    for field in PATH_FIELDS:
+        if field in data:
+            normalized = storage.normalize_relative_path(data[field])  # type: ignore[arg-type]
+            data[field] = normalized
+
+    if "original_filename" in data and data["original_filename"]:
+        original = str(data["original_filename"]).strip()
+        data["original_filename"] = original or None
+
+    if "content_type" in data and data["content_type"]:
+        content_type = str(data["content_type"]).strip()
+        data["content_type"] = content_type or None
 
 
 def list_items(
@@ -14,6 +57,10 @@ def list_items(
     user: models.User,
     *,
     search: str | None = None,
+    item_type: models.ItemType | None = None,
+    status: models.ItemStatus | None = None,
+    origin_domain: str | None = None,
+    tag_name: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> Sequence[models.Item]:
@@ -27,6 +74,17 @@ def list_items(
                 models.Item.text_content.ilike(like),
             )
         )
+    if item_type:
+        query = query.filter(models.Item.type == item_type)
+    if status:
+        query = query.filter(models.Item.status == status)
+    if origin_domain:
+        query = query.filter(models.Item.origin_domain == origin_domain.strip().lower())
+    if tag_name:
+        query = query.join(models.Item.tags).filter(
+            func.lower(models.Tag.name) == tag_name.strip().lower()
+        )
+        query = query.distinct()
     return (
         query.order_by(models.Item.created_at.desc())
         .offset(offset)
@@ -52,7 +110,9 @@ def create_item(
     user: models.User,
     payload: schemas.ItemCreate,
 ) -> models.Item:
-    item = models.Item(user_id=user.id, **payload.dict())
+    data = payload.model_dump(exclude_none=True)
+    _apply_common_normalization(data)
+    item = models.Item(user_id=user.id, **data)
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -64,7 +124,9 @@ def update_item(
     item: models.Item,
     payload: schemas.ItemUpdate,
 ) -> models.Item:
-    for key, value in payload.dict(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    _apply_common_normalization(updates)
+    for key, value in updates.items():
         setattr(item, key, value)
     db.commit()
     db.refresh(item)
