@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 from uuid import UUID
@@ -12,6 +13,7 @@ from ..database import get_db
 from ..services import file_processing, ingestion_service, items_service
 
 router = APIRouter(prefix="/items", tags=["items"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=List[schemas.ItemOut])
@@ -53,6 +55,10 @@ def create_item_from_url(
     current_user: models.User = Depends(get_current_user),
 ):
     item = ingestion_service.ingest_url(db, current_user, payload)
+    logger.info(
+        "URL item created",
+        extra={"user_id": str(current_user.id), "item_id": str(item.id)},
+    )
     return item
 
 
@@ -114,6 +120,14 @@ def upload_item(
 
     if tag_values:
         item = items_service.set_item_tags(db, current_user, item, tag_values)
+    logger.info(
+        "File uploaded",
+        extra={
+            "user_id": str(current_user.id),
+            "item_id": str(item.id),
+            "media_kind": media_kind,
+        },
+    )
     return item
 
 
@@ -161,6 +175,10 @@ def delete_item(
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
     items_service.delete_item(db, item)
+    logger.info(
+        "Item deleted",
+        extra={"user_id": str(current_user.id), "item_id": str(item.id)},
+    )
 
 
 @router.put("/{item_id}/tags", response_model=schemas.ItemOut)
@@ -173,7 +191,12 @@ def replace_item_tags(
     item = items_service.get_item(db, current_user, item_id)
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
-    return items_service.set_item_tags(db, current_user, item, payload.tags)
+    updated = items_service.set_item_tags(db, current_user, item, payload.tags)
+    logger.info(
+        "Item tags updated",
+        extra={"user_id": str(current_user.id), "item_id": str(item.id), "tag_count": len(payload.tags)},
+    )
+    return updated
 
 
 @router.get("/{item_id}/tags", response_model=List[schemas.TagOut])

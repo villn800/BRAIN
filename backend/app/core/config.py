@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     THUMBNAIL_SIZE: int = Field(default=512, ge=64, le=2048)
     THUMBNAIL_QUALITY: int = Field(default=85, ge=10, le=95)
     PDF_TEXT_MAX_CHARS: int = Field(default=20_000, ge=1_000)
+    LOG_LEVEL: str = Field(default="INFO")
+    ENVIRONMENT: str = Field(default="development")
+    APP_VERSION: str = Field(default="dev")
 
     @field_validator("API_V1_PREFIX")
     @classmethod

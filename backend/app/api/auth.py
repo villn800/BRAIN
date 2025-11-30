@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
@@ -14,6 +16,7 @@ from ..schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/bootstrap", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -38,6 +41,7 @@ def bootstrap_admin(
     db.add(user)
     db.commit()
     db.refresh(user)
+    logger.info("Bootstrap admin created", extra={"user_id": str(user.id)})
     return user
 
 
@@ -59,10 +63,15 @@ def login(
     )
 
     if not user or not verify_password(payload.password, user.password_hash):
+        logger.warning(
+            "Failed login attempt",
+            extra={"identifier": identifier},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
         )
 
     token = create_access_token({"sub": str(user.id)})
+    logger.info("User authenticated", extra={"user_id": str(user.id)})
     return TokenResponse(access_token=token)

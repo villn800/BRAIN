@@ -85,6 +85,9 @@ class HealthStatus(BaseModel):
     status: str
     db: str
     storage: str
+    environment: str
+    version: str
+    timestamp: datetime
 
 
 class UserOut(BaseModel):

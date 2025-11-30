@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 from contextlib import asynccontextmanager
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from .api import auth, items, tags
 from .core.config import get_settings
+from .core.logging import configure_logging
 from .database import Base, get_db, get_engine
 from .schemas import HealthStatus
 
@@ -20,6 +22,7 @@ async def _lifespan(_: FastAPI):
 def create_app() -> FastAPI:
     """Application factory used by ASGI servers and tests."""
     settings = get_settings()
+    configure_logging(settings.LOG_LEVEL)
     application = FastAPI(
         title=settings.PROJECT_NAME,
         docs_url=f"{settings.API_V1_PREFIX}/docs",
@@ -42,7 +45,14 @@ def create_app() -> FastAPI:
         storage_root: Path = settings.STORAGE_ROOT
         storage_status = "ok" if storage_root.is_dir() else "missing"
         overall = "ok" if db_status == "ok" and storage_status == "ok" else "degraded"
-        return HealthStatus(status=overall, db=db_status, storage=storage_status)
+        return HealthStatus(
+            status=overall,
+            db=db_status,
+            storage=storage_status,
+            environment=settings.ENVIRONMENT,
+            version=settings.APP_VERSION,
+            timestamp=datetime.now(timezone.utc),
+        )
 
     return application
 

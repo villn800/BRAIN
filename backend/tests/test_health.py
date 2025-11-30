@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from app.database import get_db
 
 
@@ -13,6 +15,7 @@ def test_health_endpoint_reports_ok(app_client_factory):
     assert payload["status"] == "ok"
     assert payload["db"] == "ok"
     assert payload["storage"] == "ok"
+    _assert_diagnostics(payload)
 
 
 def test_health_reports_storage_missing(app_client_factory):
@@ -27,6 +30,7 @@ def test_health_reports_storage_missing(app_client_factory):
     assert payload["status"] == "degraded"
     assert payload["storage"] == "missing"
     assert payload["db"] == "ok"
+    _assert_diagnostics(payload)
 
 
 def test_health_reports_db_error(app_client_factory):
@@ -47,5 +51,13 @@ def test_health_reports_db_error(app_client_factory):
 
     assert payload["db"] == "error"
     assert payload["status"] == "degraded"
+    _assert_diagnostics(payload)
 
     client.app.dependency_overrides.clear()
+
+
+def _assert_diagnostics(payload):
+    assert payload["environment"]
+    assert payload["version"]
+    assert payload["timestamp"]
+    datetime.fromisoformat(payload["timestamp"].replace("Z", "+00:00"))
