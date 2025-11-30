@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 from uuid import UUID
 
@@ -32,7 +32,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: timedelta | None = 
     settings = get_settings()
     to_encode = data.copy()
     lifetime = expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": datetime.utcnow() + lifetime})
+    to_encode.update({"exp": datetime.now(timezone.utc) + lifetime})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
 
 

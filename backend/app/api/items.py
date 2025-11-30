@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from uuid import UUID
 
@@ -15,16 +16,20 @@ router = APIRouter(prefix="/items", tags=["items"])
 
 @router.get("/", response_model=List[schemas.ItemOut])
 def list_items(
-    q: str | None = Query(None, description="Search query"),
-    item_type: models.ItemType | None = Query(None, alias="type"),
-    status_filter: models.ItemStatus | None = Query(None, alias="status"),
-    origin_domain: str | None = Query(None, description="Filter by normalized domain"),
-    tag: str | None = Query(None, description="Filter by tag name"),
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    q: str | None = Query(None, description="Case-insensitive keyword search across title, description, and extracted text"),
+    item_type: models.ItemType | None = Query(None, alias="type", description="Restrict results to a specific item type"),
+    status_filter: models.ItemStatus | None = Query(None, alias="status", description="Filter by ingestion or processing status"),
+    origin_domain: str | None = Query(None, description="Filter by normalized source domain (e.g., pinterest.com)"),
+    tag: str | None = Query(None, description="Filter by a single tag name"),
+    tags: List[str] | None = Query(None, description="Require items to contain **all** of the provided tags (intersection semantics)"),
+    created_from: datetime | None = Query(None, description="ISO-8601 timestamp; include items created at or after this moment"),
+    created_to: datetime | None = Query(None, description="ISO-8601 timestamp; include items created at or before this moment"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum number of items to return"),
+    offset: int = Query(0, ge=0, description="How many newest items to skip before returning results"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    """Return the authenticated user's items ordered newest-first with flexible search and filter controls."""
     return items_service.list_items(
         db,
         current_user,
@@ -33,6 +38,9 @@ def list_items(
         status=status_filter,
         origin_domain=origin_domain,
         tag_name=tag,
+        tag_names=tags,
+        created_from=created_from,
+        created_to=created_to,
         limit=limit,
         offset=offset,
     )
@@ -166,6 +174,18 @@ def replace_item_tags(
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
     return items_service.set_item_tags(db, current_user, item, payload.tags)
+
+
+@router.get("/{item_id}/tags", response_model=List[schemas.TagOut])
+def list_item_tags(
+    item_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    item = items_service.get_item(db, current_user, item_id)
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    return item.tags
 
 
 def _derive_upload_title(

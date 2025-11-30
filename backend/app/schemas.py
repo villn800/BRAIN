@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, constr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, constr
 
 from .models import ItemStatus, ItemType
 
@@ -45,8 +45,15 @@ class TagOut(BaseModel):
     id: UUID
     name: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TagSummary(TagOut):
+    item_count: int
+
+
+class TagCreate(BaseModel):
+    name: constr(strip_whitespace=True, min_length=1, max_length=64)
 
 
 class ItemOut(ItemBase):
@@ -61,8 +68,7 @@ class ItemOut(ItemBase):
     text_content: Optional[str]
     tags: List[TagOut] = Field(default_factory=list)
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ItemTagsUpdate(BaseModel):
@@ -70,7 +76,7 @@ class ItemTagsUpdate(BaseModel):
 
 
 class UrlIngestionRequest(BaseModel):
-    url: str = Field(min_length=1, strip_whitespace=True)
+    url: constr(strip_whitespace=True, min_length=1)
     title: Optional[str] = Field(default=None, max_length=500)
     tags: List[constr(strip_whitespace=True, min_length=1)] = Field(default_factory=list)
 
@@ -89,8 +95,7 @@ class UserOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BootstrapUserRequest(BaseModel):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     BigInteger,
@@ -20,6 +20,11 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from .database import Base
+
+
+def utcnow() -> datetime:
+    """Return a timezone-aware UTC timestamp for DB defaults."""
+    return datetime.now(timezone.utc)
 
 
 class ItemType(str, enum.Enum):
@@ -50,11 +55,11 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 
@@ -88,11 +93,11 @@ class Item(Base):
     content_type = Column(String(128), nullable=True)
     file_size_bytes = Column(BigInteger, nullable=True)
     status = Column(Enum(ItemStatus), nullable=False, default=ItemStatus.ok, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 
@@ -120,7 +125,7 @@ class Tag(Base):
         index=True,
     )
     name = Column(String(64), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     user = relationship("User", back_populates="tags")
     items = relationship(
@@ -148,4 +153,4 @@ class ItemTag(Base):
         ForeignKey("tags.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)

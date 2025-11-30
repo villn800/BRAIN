@@ -78,6 +78,34 @@ APP_/
 └── storage/        # Local mount point for file storage (ignored in git)
 ```
 
+## 🔍 Search & Filtering API
+
+The frontend grid consumes `GET /api/items`, which always returns the newest items first and exposes several query parameters that can be combined:
+
+| Parameter | Description |
+| --- | --- |
+| `q` | Case-insensitive keyword search across `title`, `description`, and extracted `text_content`. |
+| `type` | Restrict results to a specific `ItemType` (`url`, `image`, `pdf`, etc.). |
+| `tag` | Filter by a single tag name. |
+| `tags` | Provide multiple `tags=foo&tags=bar` values to require **all** of the tags (intersection semantics). |
+| `created_from` / `created_to` | ISO-8601 timestamps (UTC). Limit results to a date range. |
+| `limit` / `offset` | Standard pagination; defaults to `limit=50` newest items, `offset=0`. |
+
+Example requests:
+
+```http
+GET /api/items?q=moodboard
+GET /api/items?type=image&tag=poster
+GET /api/items?created_from=2025-01-01T00:00:00Z&created_to=2025-01-31T23:59:59Z
+GET /api/items?q=nostalgia&type=pdf&tags=article&tags=reference&limit=10&offset=20
+```
+
+`ItemOut` includes the fields a grid view can rely on: `id`, `type`, `title`, `description`, `origin_domain`, `thumbnail_path`, `file_path`, `tags[]`, `created_at`, and `updated_at`. Tag assignments are managed via:
+
+- `PUT /api/items/{item_id}/tags` — replace an item's tags with the provided list (idempotent).
+- `GET /api/items/{item_id}/tags` — fetch the tags currently attached to an item.
+- `/api/tags` — create/list/delete tags with per-user uniqueness.
+
 ## 🛠 Deployment
 
 In production (e.g., a VPS), the `storage` directory is expected to be a mount point (e.g., via NFS from a NAS) where all binary assets are stored.

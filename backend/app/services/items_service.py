@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Iterable, List, Sequence
 from uuid import UUID
 from urllib.parse import urlparse
@@ -61,6 +62,9 @@ def list_items(
     status: models.ItemStatus | None = None,
     origin_domain: str | None = None,
     tag_name: str | None = None,
+    tag_names: Iterable[str] | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> Sequence[models.Item]:
@@ -80,11 +84,36 @@ def list_items(
         query = query.filter(models.Item.status == status)
     if origin_domain:
         query = query.filter(models.Item.origin_domain == origin_domain.strip().lower())
+    tag_filters: List[str] = []
     if tag_name:
-        query = query.join(models.Item.tags).filter(
-            func.lower(models.Tag.name) == tag_name.strip().lower()
+        tag_filters.append(tag_name)
+    if tag_names:
+        if isinstance(tag_names, str):
+            tag_filters.append(tag_names)
+        else:
+            tag_filters.extend(tag_names)
+    normalized_tags = _normalize_tag_filters(tag_filters)
+    if normalized_tags:
+        # Require every requested tag by grouping on item and enforcing the count of
+        # distinct tag names. This keeps multi-tag queries deterministic for the UI.
+        matched_items = (
+            db.query(models.Item.id)
+            .join(models.Item.tags)
+            .filter(
+                models.Item.user_id == user.id,
+                func.lower(models.Tag.name).in_(normalized_tags),
+            )
+            .group_by(models.Item.id)
+            .having(
+                func.count(func.distinct(func.lower(models.Tag.name)))
+                >= len(normalized_tags)
+            )
         )
-        query = query.distinct()
+        query = query.filter(models.Item.id.in_(matched_items))
+    if created_from:
+        query = query.filter(models.Item.created_at >= created_from)
+    if created_to:
+        query = query.filter(models.Item.created_at <= created_to)
     return (
         query.order_by(models.Item.created_at.desc())
         .offset(offset)
@@ -174,4 +203,18 @@ def set_item_tags(
     db.commit()
     db.refresh(item)
     return item
+
+
+def _normalize_tag_filters(values: Iterable[str]) -> List[str]:
+    normalized: List[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if not value:
+            continue
+        cleaned = value.strip().lower()
+        if not cleaned or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        normalized.append(cleaned)
+    return normalized
 
