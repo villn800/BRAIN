@@ -22,12 +22,30 @@ services:
       - db
     env_file:
       - ./.env
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENVIRONMENT: ${ENVIRONMENT:-docker}
+      APP_VERSION: ${APP_VERSION:-compose-dev}
     volumes:
       # Bind your Unraid mount into the container in production.
       # For local dev, you can bind a ./storage directory instead.
       - ../storage:/mnt/brain_vault
     ports:
       - "${BACKEND_PORT:-4000}:4000"
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.frontend
+    depends_on:
+      - backend
+    env_file:
+      - ./.env
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://backend:4000/api}
+      VITE_ASSET_BASE_URL: ${VITE_ASSET_BASE_URL:-http://backend:4000/assets}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
 
 volumes:
   db_data:

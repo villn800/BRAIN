@@ -29,7 +29,7 @@ BRAIN follows a modern full-stack architecture:
 ### Prerequisites
 
 -   Docker & Docker Compose
--   Node.js & npm (for frontend development)
+-   Node.js 20.19+ (or 22.12+) & npm for frontend development (Vite 7 requirement)
 -   Python 3.12+ (for local backend development without Docker)
 
 ### Quick Start with Docker
@@ -74,9 +74,9 @@ Environment variables are managed via `.env` files. Configure both halves of the
 | `ENVIRONMENT` | Backend | Label surfaced via `/health` (e.g., `development`, `staging`, `production`). | `development` |
 | `APP_VERSION` | Backend | Build/commit identifier surfaced via `/health`. | `dev` |
 | `VITE_API_BASE_URL` | Frontend | Base URL for API requests (defaults to `/api`). | `/api` |
-| `VITE_ASSET_BASE_URL` | Frontend | Public URL prefix that serves files from `STORAGE_ROOT` (defaults to `/storage/`). | `/storage/` |
+| `VITE_ASSET_BASE_URL` | Frontend | Public URL prefix that serves files from `STORAGE_ROOT` (FastAPI now mounts it at `/assets`). | `/assets/` |
 
-> The frontend assumes uploaded files are reachable via `VITE_ASSET_BASE_URL + relative_path`. In docker-compose, expose nginx or another static file server that maps the storage mount to `/storage/`.
+> The frontend assumes uploaded files are reachable via `VITE_ASSET_BASE_URL + relative_path`. FastAPI now serves `STORAGE_ROOT` at `/assets`, so the default works without another static server.
 
 ## 📂 Project Structure
 
@@ -133,7 +133,7 @@ The new React + Vite frontend lives under `APP_/frontend` and speaks to the Fast
 cd APP_/frontend
 npm install
 VITE_API_BASE_URL=http://localhost:4000/api \
-VITE_ASSET_BASE_URL=http://localhost:4000/storage/ \
+VITE_ASSET_BASE_URL=http://localhost:4000/assets \
 npm run dev
 ```
 
@@ -166,11 +166,45 @@ Visit http://localhost:5173, log in, and you should be able to:
 
 Wire this endpoint into uptime monitors or container orchestrators for readiness checks.
 
+## 🗂 Static Assets
+
+- FastAPI now mounts `STORAGE_ROOT` at `/assets`, so every relative path persisted on an item can be loaded via `http://<backend-host>:4000/assets/<relative_path>`.
+- `VITE_ASSET_BASE_URL` points to the same mount. Keep the default (`http://localhost:4000/assets` in dev, `http://backend:4000/assets` in Docker) unless you front the API with a proxy.
+- To verify the mount manually:
+
+    ```bash
+    curl -I http://localhost:4000/assets/uploads/images/<ITEM_ID>_thumb.jpg
+    ```
+
+    You should receive `200 OK` for any file that exists under `STORAGE_ROOT`.
+
 ## 🛠 Deployment
 
 In production (e.g., a VPS), the `storage` directory is expected to be a mount point (e.g., via NFS from a NAS) where all binary assets are stored.
 
-See `deploy/docker-compose.yml` for the production-ready service definitions.
+### Docker Compose stack
+
+Bring up Postgres, the FastAPI backend (with `/assets`), and the Vite frontend via Docker Compose:
+
+```bash
+cd APP_/deploy
+cp .env.example .env   # edit secrets + storage path + ports
+docker compose up --build
+```
+
+Services & ports:
+
+| Service | Description | Host Port |
+| --- | --- | --- |
+| `db` | PostgreSQL backing store | `${POSTGRES_PORT:-5432}` |
+| `backend` | FastAPI app + `/assets` static mount | `${BACKEND_PORT:-4000}` |
+| `frontend` | Vite dev server that targets the backend via service DNS | `${FRONTEND_PORT:-5173}` |
+
+Once the stack is healthy, browse to `http://localhost:5173`, log in, and walk through the core flows (save URL, upload file, search/filter, open detail). The frontend is configured so `VITE_API_BASE_URL` and `VITE_ASSET_BASE_URL` automatically resolve to the backend container.
+
+> **Heads-up:** Docker Desktop/Engine must be installed locally. If the `docker` CLI is missing, the compose command will fail—install Docker and rerun the stack.
+
+See `deploy/docker-compose.yml` for service definitions, mounted volumes, and environment variables.
 
 ---
 *v1.0.0*

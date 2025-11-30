@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from fastapi import UploadFile
 from PIL import Image
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 from .. import models
 from ..core import storage
@@ -155,7 +155,7 @@ def extract_pdf_text(path: Path, *, max_chars: int | None = None) -> tuple[str |
         for page in reader.pages:
             try:
                 text = page.extract_text() or ""
-            except Exception as exc:  # pragma: no cover - PyPDF2 edge cases
+            except Exception as exc:  # pragma: no cover - pypdf edge cases
                 logger.warning("Failed to extract text from page: %s", exc)
                 return None, True
             if text:

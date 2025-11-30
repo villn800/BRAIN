@@ -3,6 +3,7 @@ from pathlib import Path
 
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -33,6 +34,11 @@ def create_app() -> FastAPI:
     application.include_router(auth.router, prefix=settings.API_V1_PREFIX)
     application.include_router(items.router, prefix=settings.API_V1_PREFIX)
     application.include_router(tags.router, prefix=settings.API_V1_PREFIX)
+    application.mount(
+        "/assets",
+        StaticFiles(directory=settings.STORAGE_ROOT, check_dir=False),
+        name="assets",
+    )
 
     @application.get("/health", response_model=HealthStatus)
     def health(db: Session = Depends(get_db)) -> HealthStatus:

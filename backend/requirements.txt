@@ -14,4 +14,4 @@ pytest
 httpx
 beautifulsoup4
 Pillow
-PyPDF2
+pypdf
