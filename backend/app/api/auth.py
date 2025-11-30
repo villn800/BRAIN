@@ -64,5 +64,5 @@ def login(
             detail="Invalid credentials",
         )
 
-    token = create_access_token(subject=str(user.id))
+    token = create_access_token({"sub": str(user.id)})
     return TokenResponse(access_token=token)
