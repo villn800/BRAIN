@@ -3,6 +3,7 @@ from pathlib import Path
 
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -29,6 +30,15 @@ def create_app() -> FastAPI:
         docs_url=f"{settings.API_V1_PREFIX}/docs",
         openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
         lifespan=_lifespan,
+    )
+
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ALLOW_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["content-disposition"],
     )
 
     application.include_router(auth.router, prefix=settings.API_V1_PREFIX)

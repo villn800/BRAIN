@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,6 +22,9 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = Field(default="/api")
     DATABASE_URL: str = Field(default="postgresql://brain:brain@db:5432/brain")
     STORAGE_ROOT: Path = Field(default=Path("/mnt/brain_vault"))
+    CORS_ALLOW_ORIGINS: List[str] = Field(
+        default_factory=lambda: ["http://localhost:5173", "http://localhost:4173"]
+    )
     SECRET_KEY: str = Field(
         default="dev-secret-change-me-please-32-bytes!",
         description="Used for signing auth tokens; override in production.",
@@ -53,6 +57,15 @@ class Settings(BaseSettings):
         if not path.is_absolute():
             raise ValueError("STORAGE_ROOT must be an absolute path")
         return path
+
+    @field_validator("CORS_ALLOW_ORIGINS", mode="before")
+    @classmethod
+    def normalize_cors_origins(cls, value: str | list[str]) -> list[str]:
+        if isinstance(value, str):
+            if not value.strip():
+                return []
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
 
 
 @lru_cache

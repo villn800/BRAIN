@@ -68,6 +68,7 @@ Environment variables are managed via `.env` files. Configure both halves of the
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Backend | SQLAlchemy connection string. | `postgresql://brain:brain@db:5432/brain` |
 | `STORAGE_ROOT` | Backend | Absolute path to the storage mount used for uploads, thumbnails, and extracted assets. | `/mnt/brain_vault` |
+| `CORS_ALLOW_ORIGINS` | Backend | JSON array of allowed browser origins for the API (FastAPI enables CORS automatically). | `["http://localhost:5173","http://localhost:4173"]` |
 | `SECRET_KEY` | Backend | JWT signing key. Always override outside local dev. | `dev-secret-change-me-please-32-bytes!` |
 | `MAX_UPLOAD_BYTES` | Backend | Server-side upload limit (bytes). | `26214400` (25 MB) |
 | `LOG_LEVEL` | Backend | New centralized logging level (`DEBUG`, `INFO`, etc.). | `INFO` |
@@ -165,6 +166,8 @@ Visit http://localhost:5173, log in, and you should be able to:
 ```
 
 Wire this endpoint into uptime monitors or container orchestrators for readiness checks.
+
+**CORS:** The backend now ships with FastAPI's `CORSMiddleware` and reads allowed origins from `CORS_ALLOW_ORIGINS`. Provide a JSON array (e.g., `["https://vault.example.com","https://admin.example.com"]`) to cover every domain that should reach the API. In Docker, expose the same value via `deploy/.env` so the frontend running at `${FRONTEND_PORT}` can authenticate without browser errors.
 
 ## 🗂 Static Assets
 
