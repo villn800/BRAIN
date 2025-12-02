@@ -5,6 +5,7 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 APP_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 REPO_ROOT=$(cd "$APP_ROOT/.." && pwd)
 PYTHON_BIN="$REPO_ROOT/.venv/bin/python"
+NODE_BIN=$(command -v node || true)
 BACKEND_DIR="$APP_ROOT/backend"
 FRONTEND_DIR="$APP_ROOT/frontend"
 BACKEND_PID_FILE="/tmp/backend.pid"
@@ -15,6 +16,18 @@ FRONTEND_LOG="/tmp/frontend.log"
 
 if [[ ! -x $PYTHON_BIN ]]; then
   echo "Python virtualenv not found at $PYTHON_BIN" >&2
+  exit 1
+fi
+
+if [[ -z $NODE_BIN ]]; then
+  echo "Node.js is not installed (required for Vite dev server)." >&2
+  exit 1
+fi
+
+NODE_VERSION_RAW=$($NODE_BIN -v | sed 's/^v//')
+IFS='.' read -r NODE_MAJOR NODE_MINOR NODE_PATCH <<<"$NODE_VERSION_RAW"
+if (( NODE_MAJOR < 20 )) || { (( NODE_MAJOR == 20 )) && (( NODE_MINOR < 19 )); }; then
+  echo "Node.js $NODE_VERSION_RAW detected. Vite requires Node 20.19+ or 22.12+. Please upgrade Node.js." >&2
   exit 1
 fi
 

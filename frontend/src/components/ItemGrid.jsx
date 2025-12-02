@@ -1,6 +1,6 @@
 import ItemCard from './ItemCard'
 
-export default function ItemGrid({ items, loading }) {
+export default function ItemGrid({ items, loading, onSelectItem, gridStyle, overlayMode = 'hover' }) {
   if (!items.length && !loading) {
     return (
       <div className="empty-state">
@@ -11,10 +11,11 @@ export default function ItemGrid({ items, loading }) {
   }
 
   return (
-    <div className="item-grid">
+    <div className="masonry-grid" style={gridStyle}>
       {items.map((item) => (
-        <ItemCard key={item.id} item={item} />
+        <ItemCard key={item.id} item={item} onSelect={onSelectItem} overlayMode={overlayMode} />
       ))}
+      {loading && <div className="masonry-loader">Loading…</div>}
     </div>
   )
 }
