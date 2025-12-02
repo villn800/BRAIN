@@ -1,13 +1,10 @@
 import { createPortal } from 'react-dom'
 import { useSettings } from '../context/SettingsContext'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export default function SettingsModal({ open, onClose }) {
   const { settings, setSetting, resetSettings } = useSettings()
-
-  if (!open) {
-    return null
-  }
+  const dialogRef = useRef(null)
 
   useEffect(() => {
     if (!open) {
@@ -20,14 +17,63 @@ export default function SettingsModal({ open, onClose }) {
     }
   }, [open])
 
+  useEffect(() => {
+    if (!open) {
+      return undefined
+    }
+    const node = dialogRef.current
+    const closeOnEsc = (event) => {
+      if (event.key === 'Escape') {
+        onClose?.()
+      }
+      if (event.key !== 'Tab' || !node) {
+        return
+      }
+      const focusable = node.querySelectorAll(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      )
+      const entries = Array.from(focusable)
+      if (!entries.length) {
+        return
+      }
+      const first = entries[0]
+      const last = entries[entries.length - 1]
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault()
+          last.focus()
+        }
+      } else if (document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', closeOnEsc)
+    const firstFocusable = node?.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    firstFocusable?.focus()
+    return () => window.removeEventListener('keydown', closeOnEsc)
+  }, [open, onClose])
+
+  if (!open) {
+    return null
+  }
+
   return createPortal(
     <div className="detail-overlay settings-overlay" onClick={onClose}>
-      <div className="settings-modal" role="dialog" aria-modal="true" aria-label="Board settings" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="settings-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Board settings"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        ref={dialogRef}
+      >
         <header className="settings-header">
           <div>
             <p className="eyebrow">Board settings</p>
-            <h2>Personalize your view</h2>
-            <p className="muted">Density, thumbnail size, and hover behavior are saved to this browser.</p>
+            <h2>Personalize your board</h2>
+            <p className="muted">Density, media sizing, overlays, theme, and motion are saved to this browser.</p>
           </div>
           <button type="button" className="ghost" onClick={onClose}>
             Close ✕
@@ -35,51 +81,53 @@ export default function SettingsModal({ open, onClose }) {
         </header>
 
         <div className="settings-body">
-          <fieldset className="settings-group">
-            <legend>Grid density</legend>
-            <div className="settings-options">
-              {['compact', 'cozy', 'airy'].map((value) => (
-                <label key={value} className="option-tile">
-                  <input
-                    type="radio"
-                    name="gridDensity"
-                    value={value}
-                    checked={settings.gridDensity === value}
-                    onChange={(event) => setSetting('gridDensity', event.target.value)}
-                  />
-                  <span className="option-title">{value}</span>
-                  <span className="option-hint">
-                    {value === 'compact'
-                      ? 'Tight packing'
-                      : value === 'cozy'
-                        ? 'Balanced'
-                        : 'Extra breathing room'}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <div className="settings-columns">
+            <fieldset className="settings-group">
+              <legend>Grid density</legend>
+              <div className="settings-options">
+                {['compact', 'cozy', 'airy'].map((value) => (
+                  <label key={value} className="option-tile">
+                    <input
+                      type="radio"
+                      name="gridDensity"
+                      value={value}
+                      checked={settings.gridDensity === value}
+                      onChange={(event) => setSetting('gridDensity', event.target.value)}
+                    />
+                    <span className="option-title">{value}</span>
+                    <span className="option-hint">
+                      {value === 'compact'
+                        ? 'Tight packing'
+                        : value === 'cozy'
+                          ? 'Balanced'
+                          : 'Extra breathing room'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
-          <fieldset className="settings-group">
-            <legend>Thumbnail height</legend>
-            <div className="settings-options">
-              {['small', 'medium', 'large'].map((value) => (
-                <label key={value} className="option-tile">
-                  <input
-                    type="radio"
-                    name="thumbSize"
-                    value={value}
-                    checked={settings.thumbSize === value}
-                    onChange={(event) => setSetting('thumbSize', event.target.value)}
-                  />
-                  <span className="option-title">{value}</span>
-                  <span className="option-hint">
-                    {value === 'small' ? 'Snappier scroll' : value === 'medium' ? 'Default' : 'Big visuals'}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+            <fieldset className="settings-group">
+              <legend>Thumbnail height</legend>
+              <div className="settings-options">
+                {['small', 'medium', 'large'].map((value) => (
+                  <label key={value} className="option-tile">
+                    <input
+                      type="radio"
+                      name="thumbSize"
+                      value={value}
+                      checked={settings.thumbSize === value}
+                      onChange={(event) => setSetting('thumbSize', event.target.value)}
+                    />
+                    <span className="option-title">{value}</span>
+                    <span className="option-hint">
+                      {value === 'small' ? 'Snappier scroll' : value === 'medium' ? 'Default' : 'Big visuals'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
 
           <fieldset className="settings-group">
             <legend>Metadata display</legend>
@@ -95,6 +143,50 @@ export default function SettingsModal({ open, onClose }) {
                     value={entry.value}
                     checked={settings.overlayMode === entry.value}
                     onChange={(event) => setSetting('overlayMode', event.target.value)}
+                  />
+                  <span className="option-title">{entry.label}</span>
+                  <span className="option-hint">{entry.hint}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="settings-group">
+            <legend>Theme intensity</legend>
+            <div className="settings-options">
+              {[
+                { value: 'soft', label: 'Soft', hint: 'Light gradient, airy cards, gentle borders' },
+                { value: 'bold', label: 'Bold', hint: 'Richer gradient, stronger contrast & accent' },
+              ].map((entry) => (
+                <label key={entry.value} className="option-tile">
+                  <input
+                    type="radio"
+                    name="themeIntensity"
+                    value={entry.value}
+                    checked={settings.themeIntensity === entry.value}
+                    onChange={(event) => setSetting('themeIntensity', event.target.value)}
+                  />
+                  <span className="option-title">{entry.label}</span>
+                  <span className="option-hint">{entry.hint}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="settings-group">
+            <legend>Motion</legend>
+            <div className="settings-options">
+              {[
+                { value: 'standard', label: 'Standard', hint: 'Hover lift + smooth transitions' },
+                { value: 'reduced', label: 'Reduced', hint: 'Minimal motion; respects system prefs' },
+              ].map((entry) => (
+                <label key={entry.value} className="option-tile">
+                  <input
+                    type="radio"
+                    name="motion"
+                    value={entry.value}
+                    checked={settings.motion === entry.value}
+                    onChange={(event) => setSetting('motion', event.target.value)}
                   />
                   <span className="option-title">{entry.label}</span>
                   <span className="option-hint">{entry.hint}</span>

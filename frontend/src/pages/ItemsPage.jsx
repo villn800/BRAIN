@@ -140,76 +140,89 @@ export default function ItemsPage() {
     '--thumb-min-height': `${thumbHeight}px`,
   }
 
+  const pageClassNames = [
+    'board-page',
+    `density-${settings.gridDensity}`,
+    `theme-${settings.themeIntensity}`,
+    `motion-${settings.motion}`,
+    `overlay-${settings.overlayMode}`,
+  ].join(' ')
+
   return (
-    <div className="board-layout">
-      <aside className="command-rail">
-        <div className="rail-header">
-          <div>
+    <div className={pageClassNames}>
+      <div className="board-backdrop" aria-hidden />
+      <div className="board-layout">
+        <aside className="command-rail">
+          <div className="rail-title">
             <p className="eyebrow">Inputs</p>
-            <h2>Search, save, upload</h2>
-            <p className="muted">Keep controls pinned while the board flows.</p>
+            <h3>Search, save, upload</h3>
+            <p className="muted">Pinned controls stay put while the board flows.</p>
           </div>
-          <button type="button" className="ghost" onClick={handleRefresh}>
-            Refresh
-          </button>
-        </div>
-        <div className="rail-scroll">
-          <SearchFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onReset={handleResetFilters}
-            availableTags={tags}
+          <div className="rail-scroll">
+            <SearchFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onReset={handleResetFilters}
+              availableTags={tags}
+            />
+            <SaveLinkForm onItemCreated={handleItemCreated} />
+            <UploadForm onItemCreated={handleItemCreated} />
+          </div>
+        </aside>
+
+        <section className="board-main">
+          <div className="board-top">
+            <div>
+              <p className="eyebrow">Inspiration board</p>
+              <h1>Studio masonry view</h1>
+              <p className="muted">High-density, flowing tiles kept above the fold with hover metadata.</p>
+              <div className="board-meta">
+                <span className="pill subtle-pill">{settings.gridDensity} density</span>
+                <span className="pill subtle-pill">{settings.thumbSize} thumbs</span>
+                <span className="pill subtle-pill">
+                  {settings.overlayMode === 'hover' ? 'Overlay on hover' : 'Overlay always'}
+                </span>
+              </div>
+            </div>
+            <div className="board-actions">
+              <button type="button" className="ghost" onClick={handleRefresh}>
+                Refresh ↻
+              </button>
+              <button type="button" className="ghost" onClick={() => setSettingsOpen(true)}>
+                Settings ⚙︎
+              </button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="error-banner">
+              <span>{error}</span>
+              <button type="button" className="ghost" onClick={handleRefresh}>
+                Retry
+              </button>
+            </div>
+          )}
+
+          <ItemGrid
+            items={items}
+            loading={loading}
+            onSelectItem={handleSelectItem}
+            gridStyle={gridStyle}
+            overlayMode={settings.overlayMode}
           />
-          <SaveLinkForm onItemCreated={handleItemCreated} />
-          <UploadForm onItemCreated={handleItemCreated} />
-        </div>
-      </aside>
 
-      <section className="board-main">
-        <div className="board-top">
-          <div>
-            <p className="eyebrow">Inspiration board</p>
-            <h1>Masonry view</h1>
-            <p className="muted">High-density, flowing tiles that keep the work visible above the fold.</p>
-          </div>
-          <div className="board-actions">
-            <button type="button" className="ghost" onClick={() => setSettingsOpen(true)}>
-              Settings ⚙︎
-            </button>
-            <button type="button" className="ghost" onClick={handleRefresh}>
-              Reload feed
-            </button>
-          </div>
-        </div>
+          {hasMore && !loading && (
+            <div className="load-more">
+              <button type="button" onClick={handleLoadMore} disabled={loadMoreLoading}>
+                {loadMoreLoading ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
+          )}
+        </section>
 
-        {error && (
-          <div className="error-banner">
-            <span>{error}</span>
-            <button type="button" className="ghost" onClick={handleRefresh}>
-              Retry
-            </button>
-          </div>
-        )}
-
-        <ItemGrid
-          items={items}
-          loading={loading}
-          onSelectItem={handleSelectItem}
-          gridStyle={gridStyle}
-          overlayMode={settings.overlayMode}
-        />
-
-        {hasMore && !loading && (
-          <div className="load-more">
-            <button type="button" onClick={handleLoadMore} disabled={loadMoreLoading}>
-              {loadMoreLoading ? 'Loading…' : 'Load more'}
-            </button>
-          </div>
-        )}
-      </section>
-
-      {selectedItemId && <ItemDetailPanel itemId={selectedItemId} onClose={handleClosePanel} />}
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        {selectedItemId && <ItemDetailPanel itemId={selectedItemId} onClose={handleClosePanel} />}
+        <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      </div>
     </div>
   )
 }

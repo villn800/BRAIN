@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { SettingsProvider } from './context/SettingsContext'
+import { SettingsProvider, useSettings } from './context/SettingsContext'
 import LoginPage from './pages/LoginPage'
 import ItemsPage from './pages/ItemsPage'
 import ItemDetailPage from './pages/ItemDetailPage'
@@ -15,9 +15,11 @@ function RequireAuth() {
 
 function AppLayout() {
   const { logout } = useAuth()
+  const { settings } = useSettings()
+  const themeClass = `theme-${settings.themeIntensity} motion-${settings.motion}`
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${themeClass}`}>
       <header className="app-header">
         <div className="brand">
           <span className="brand-dot" />

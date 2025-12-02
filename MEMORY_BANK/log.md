@@ -4,6 +4,14 @@ Append new entries at the **top** (most recent first).
 
 ---
 
+## 2025-12-05 – Initiative 6: Studio Board Layout & Theme
+
+- Refactored board layout: inputs rail on the left, Inspiration Board hero on the right with inline Settings + Refresh; header copy tightened.
+- Expanded settings (density, thumb height, overlay mode, theme intensity soft/bold, motion standard/reduced) with defensive localStorage + reset defaults; motion honors reduced-motion.
+- Applied studio gradient theme and tokens across background, cards, masonry tiles, detail panel, and settings dialog; hover/focus tuned with motion-safe variants.
+- Fixed settings modal hook order and layout (two-column options aligned; keyboard trap intact).
+- Tests: `npm run build` (frontend) passed; backend pytest now run from a new `.venv` (`cd APP_/backend && source .venv/bin/activate && python -m pytest`) with 52 passing.
+
 ## 2025-11-30 – v1 Close-Out
 
 - Completed Initiatives 1–4 from `BRAIN_MASTER_PLAYBOOK.md` plus deployment close‑out.

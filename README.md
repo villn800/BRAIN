@@ -1,12 +1,14 @@
-# BRAIN Inspiration Vault (v1.1 Masonry Refresh)
+# BRAIN Inspiration Vault (v1.2 Studio Board)
 
-BRAIN is a self-hosted inspiration vault / moodboard for saving URLs, Tweets/Pins, images, and PDFs with rich previews. Initiative 5 refreshes the frontend into a Pinterest-style masonry board with a sticky command rail, right-side detail panel, and per-browser UI settings.
+BRAIN is a self-hosted inspiration vault / moodboard for saving URLs, Tweets/Pins, images, and PDFs with rich previews. Initiative 6 layers on a studio-style theme plus refreshed layout and settings (density, sizing, overlay, theme intensity, and motion).
 
 ## 🧭 UI at a Glance
-- **Board:** Masonry grid stays above the fold; hover overlays show quick metadata. Cards are keyboard-focusable (Enter/Space opens).
-- **Command rail:** Pinned on the side with Search/Filters, Save Link, and Upload forms so you can edit controls without losing the grid.
+- **Board:** Masonry grid and header live on the right as the hero surface; hover overlays show quick metadata. Cards are keyboard-focusable (Enter/Space opens).
+- **Command rail:** Inputs column on the left with Search/Filters, Save Link, and Upload cards pinned while you browse.
+- **Header controls:** Board title + subtitle sit above the grid with Settings + Refresh inline instead of a standalone refresh card.
 - **Detail panel:** Clicking a card opens a slide-in panel (`?itemId=` in URL). ESC/backdrop closes; “Full view →” links to `/items/:id` for deep links.
-- **Settings:** Gear icon opens a modal to adjust grid density (compact/cozy/airy), thumbnail height (small/medium/large), and overlay mode (hover/always). Settings persist in localStorage per browser.
+- **Settings:** Gear icon opens a modal to adjust grid density (compact/cozy/airy), thumbnail height (small/medium/large), overlay mode (hover/always), theme intensity (soft/bold), and motion (standard/reduced). Settings persist in localStorage per browser and “Reset” restores cozy/medium/hover/soft/standard (or reduced if the OS requests it). Dialog is keyboard-friendly (ESC closes; focus trap) with tidy two-column layout.
+- **Theme:** Gloven-inspired studio look with soft gradients, elevated cards, blue-purple accent, and motion-safe states (honors reduced-motion + the Motion preference).
 
 ## 🏗 Stack
 - **Frontend:** React + Vite 7, `react-router-dom`; styles in `APP_/frontend/src/styles.css`.
