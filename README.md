@@ -1,213 +1,255 @@
-# BRAIN Inspiration Vault
+# BRAIN – Inspiration Vault
 
-BRAIN is a self-hosted inspiration vault designed to help you collect, organize, and retrieve ideas. It serves as a private "second brain" for saving generic URLs, social media posts (Tweets, Pins), and local files (images, PDFs), all accessible via a visual grid interface.
+BRAIN is a self-hostable **Inspiration Vault / moodboard**:
 
-## 🧠 Project Overview
+- Save **URLs** (generic web, Twitter/X, Pinterest).
+- **Upload images and PDFs**.
+- Normalize URLs and fetch metadata + preview images.
+- Store everything in a structured DB with tags, types, and text content.
+- Browse everything through a **login-gated web UI** with:
+  - Grid of items with thumbnails.
+  - Detail view with metadata & preview.
+  - Search and filters (text, type, tags, date).
+  - “Save link” and “Upload file” flows.
 
-The core philosophy of BRAIN is to provide a frictionless way to capture content and a powerful way to retrieve it later, all while keeping your data private and self-hosted.
-
-### Key Features (v1)
-
--   **Link Saving:** Save generic URLs with automatic metadata extraction (Title, Description, OpenGraph images).
--   **Social Media Integration:** specialized handling for Twitter/X and Pinterest (saving text, authors, and images).
--   **File Uploads:** Upload local images and PDFs.
--   **Visual Grid:** Browse all your content in a responsive, masonry-style grid.
--   **Search & Filter:** Full-text search across titles, descriptions, and extracted text (PDFs), with filters for content type.
--   **Private:** Designed to run behind a reverse proxy with authentication.
-
-## 🏗 Architecture
-
-BRAIN follows a modern full-stack architecture:
-
--   **Frontend:** React (Vite) SPA.
--   **Backend:** FastAPI (Python) application using SQLAlchemy for ORM.
--   **Database:** PostgreSQL.
--   **Storage:** Designed to work with networked storage (e.g., Unraid NFS share) or local storage.
-
-## 🚀 Getting Started (Local Development)
-
-### Prerequisites
-
--   Docker & Docker Compose
--   Node.js 20.19+ (or 22.12+) & npm for frontend development (Vite 7 requirement)
--   Python 3.12+ (for local backend development without Docker)
-
-### Quick Start with Docker
-
-The easiest way to run the entire stack is using Docker Compose.
-
-1.  **Navigate to the deploy directory:**
-    ```bash
-    cd deploy
-    ```
-
-2.  **Start the services:**
-    ```bash
-    docker-compose up --build
-    ```
-
-    This will start:
-    -   **Backend:** http://localhost:4000 (Health check: `/health`)
-    -   **Database:** PostgreSQL on port 5432
-
-3.  **Run the Frontend (Separate Terminal):**
-    For a better developer experience (HMR), run the frontend locally.
-    
-    ```bash
-    cd frontend
-    npm install
-    npm run dev
-    ```
-    Access the UI at http://localhost:5173
-
-### Configuration
-
-Environment variables are managed via `.env` files. Configure both halves of the stack before running dev servers.
-
-| Variable | Scope | Description | Default |
-| --- | --- | --- | --- |
-| `DATABASE_URL` | Backend | SQLAlchemy connection string. | `postgresql://brain:brain@db:5432/brain` |
-| `STORAGE_ROOT` | Backend | Absolute path to the storage mount used for uploads, thumbnails, and extracted assets. | `/mnt/brain_vault` |
-| `CORS_ALLOW_ORIGINS` | Backend | JSON array of allowed browser origins for the API (FastAPI enables CORS automatically). | `["http://localhost:5173","http://localhost:4173"]` |
-| `SECRET_KEY` | Backend | JWT signing key. Always override outside local dev. | `dev-secret-change-me-please-32-bytes!` |
-| `MAX_UPLOAD_BYTES` | Backend | Server-side upload limit (bytes). | `26214400` (25 MB) |
-| `LOG_LEVEL` | Backend | New centralized logging level (`DEBUG`, `INFO`, etc.). | `INFO` |
-| `ENVIRONMENT` | Backend | Label surfaced via `/health` (e.g., `development`, `staging`, `production`). | `development` |
-| `APP_VERSION` | Backend | Build/commit identifier surfaced via `/health`. | `dev` |
-| `VITE_API_BASE_URL` | Frontend | Base URL for API requests (defaults to `/api`). | `/api` |
-| `VITE_ASSET_BASE_URL` | Frontend | Public URL prefix that serves files from `STORAGE_ROOT` (FastAPI now mounts it at `/assets`). | `/assets/` |
-
-> The frontend assumes uploaded files are reachable via `VITE_ASSET_BASE_URL + relative_path`. FastAPI now serves `STORAGE_ROOT` at `/assets`, so the default works without another static server.
-
-## 📂 Project Structure
-
-```
-APP_/
-├── backend/        # FastAPI application source code
-│   ├── app/        # Main app logic (models, schemas, api routes)
-│   └── ...
-├── frontend/       # React application source code
-├── deploy/         # Docker Compose and deployment configuration
-└── storage/        # Local mount point for file storage (ignored in git)
-```
-
-## 🔍 Search & Filtering API
-
-The frontend grid consumes `GET /api/items`, which always returns the newest items first and exposes several query parameters that can be combined:
-
-| Parameter | Description |
-| --- | --- |
-| `q` | Case-insensitive keyword search across `title`, `description`, and extracted `text_content`. |
-| `type` | Restrict results to a specific `ItemType` (`url`, `image`, `pdf`, etc.). |
-| `tag` | Filter by a single tag name. |
-| `tags` | Provide multiple `tags=foo&tags=bar` values to require **all** of the tags (intersection semantics). |
-| `created_from` / `created_to` | ISO-8601 timestamps (UTC). Limit results to a date range. |
-| `limit` / `offset` | Standard pagination; defaults to `limit=50` newest items, `offset=0`. |
-
-Example requests:
-
-```http
-GET /api/items?q=moodboard
-GET /api/items?type=image&tag=poster
-GET /api/items?created_from=2025-01-01T00:00:00Z&created_to=2025-01-31T23:59:59Z
-GET /api/items?q=nostalgia&type=pdf&tags=article&tags=reference&limit=10&offset=20
-```
-
-`ItemOut` includes the fields a grid view can rely on: `id`, `type`, `title`, `description`, `origin_domain`, `thumbnail_path`, `file_path`, `tags[]`, `created_at`, and `updated_at`. Tag assignments are managed via:
-
-- `PUT /api/items/{item_id}/tags` — replace an item's tags with the provided list (idempotent).
-- `GET /api/items/{item_id}/tags` — fetch the tags currently attached to an item.
-- `/api/tags` — create/list/delete tags with per-user uniqueness.
-
-## 🖥 Frontend UX (H7)
-
-The new React + Vite frontend lives under `APP_/frontend` and speaks to the FastAPI backend via `/api`. Key surfaces include:
-
-- **Auth flow:** `/login` accepts the bootstrap admin username/email + password, stores the JWT, and guards all other routes.
-- **Grid view:** `/` lists the newest items with keyword search, type filter, multi-tag intersection, date range, and pagination (`Load more`).
-- **Save flows:** Inline cards let you (a) ingest URLs (`/api/items/url`) and (b) upload images/PDFs (`/api/items/upload`) without leaving the page.
-- **Detail view:** `/items/:id` shows large previews, metadata, tags, extracted text, and “Open source / Download asset” actions.
-
-### Running the frontend locally
-
-```bash
-cd APP_/frontend
-npm install
-VITE_API_BASE_URL=http://localhost:4000/api \
-VITE_ASSET_BASE_URL=http://localhost:4000/assets \
-npm run dev
-```
-
-Visit http://localhost:5173, log in, and you should be able to:
-
-1. Log in with the bootstrap admin user.
-2. See existing items hydrate into the grid.
-3. Save a URL and watch it prepend to the grid once ingestion completes.
-4. Upload an image/PDF (25 MB max) and confirm the thumbnail/text extraction.
-5. Filter by keyword/type/tags/date and paginate via “Load more”.
-6. Open an item detail page and launch the original source/download links.
-
-> Tip: Run the backend (`uvicorn app.main:app --reload`) and frontend dev server simultaneously for HMR + live API feedback.
-
-## 🩺 Operations & Diagnostics (H8)
-
-- **Centralized logging:** `app/core/logging.py` installs a UTC timestamped, key-value-friendly log formatter for the root logger and all uvicorn loggers. Tune verbosity with `LOG_LEVEL` (e.g., `DEBUG` during local troubleshooting, `INFO`/`WARNING` in prod). Critical events such as login attempts, URL ingestions, file uploads, and tag updates now emit structured log lines with `user_id`, `item_id`, and `media_kind` metadata.
-- **Health endpoint:** `GET /health` still performs DB and storage checks, but now also returns `environment`, `version`, and an ISO-8601 `timestamp`. Sample payload:
-
-```json
-{
-    "status": "ok",
-    "db": "ok",
-    "storage": "ok",
-    "environment": "development",
-    "version": "dev",
-    "timestamp": "2025-11-30T18:04:22.417597+00:00"
-}
-```
-
-Wire this endpoint into uptime monitors or container orchestrators for readiness checks.
-
-**CORS:** The backend now ships with FastAPI's `CORSMiddleware` and reads allowed origins from `CORS_ALLOW_ORIGINS`. Provide a JSON array (e.g., `["https://vault.example.com","https://admin.example.com"]`) to cover every domain that should reach the API. In Docker, expose the same value via `deploy/.env` so the frontend running at `${FRONTEND_PORT}` can authenticate without browser errors.
-
-## 🗂 Static Assets
-
-- FastAPI now mounts `STORAGE_ROOT` at `/assets`, so every relative path persisted on an item can be loaded via `http://<backend-host>:4000/assets/<relative_path>`.
-- `VITE_ASSET_BASE_URL` points to the same mount. Keep the default (`http://localhost:4000/assets` in dev, `http://backend:4000/assets` in Docker) unless you front the API with a proxy.
-- To verify the mount manually:
-
-    ```bash
-    curl -I http://localhost:4000/assets/uploads/images/<ITEM_ID>_thumb.jpg
-    ```
-
-    You should receive `200 OK` for any file that exists under `STORAGE_ROOT`.
-
-## 🛠 Deployment
-
-In production (e.g., a VPS), the `storage` directory is expected to be a mount point (e.g., via NFS from a NAS) where all binary assets are stored.
-
-### Docker Compose stack
-
-Bring up Postgres, the FastAPI backend (with `/assets`), and the Vite frontend via Docker Compose:
-
-```bash
-cd APP_/deploy
-cp .env.example .env   # edit secrets + storage path + ports
-docker compose up --build
-```
-
-Services & ports:
-
-| Service | Description | Host Port |
-| --- | --- | --- |
-| `db` | PostgreSQL backing store | `${POSTGRES_PORT:-5432}` |
-| `backend` | FastAPI app + `/assets` static mount | `${BACKEND_PORT:-4000}` |
-| `frontend` | Vite dev server that targets the backend via service DNS | `${FRONTEND_PORT:-5173}` |
-
-Once the stack is healthy, browse to `http://localhost:5173`, log in, and walk through the core flows (save URL, upload file, search/filter, open detail). The frontend is configured so `VITE_API_BASE_URL` and `VITE_ASSET_BASE_URL` automatically resolve to the backend container.
-
-> **Heads-up:** Docker Desktop/Engine must be installed locally. If the `docker` CLI is missing, the compose command will fail—install Docker and rerun the stack.
-
-See `deploy/docker-compose.yml` for service definitions, mounted volumes, and environment variables.
+The v1 backend, frontend, ingestion, search/filtering, and Docker setup are complete and closed out. This README describes how to run and extend that system.
 
 ---
-*v1.0.0*
+
+## Table of Contents
+
+1. [Architecture Overview](#architecture-overview)  
+2. [Prerequisites](#prerequisites)  
+3. [Configuration](#configuration)  
+4. [Running Locally (dev)](#running-locally-dev)  
+5. [Docker / Compose](#docker--compose)  
+6. [Using the App](#using-the-app)  
+7. [Key API Endpoints](#key-api-endpoints)  
+8. [Testing & Quality](#testing--quality)  
+9. [Project Conventions](#project-conventions)  
+10. [Backlog / Future Ideas](#backlog--future-ideas)
+
+---
+
+## Architecture Overview
+
+### Backend
+
+Located in `APP_/backend`.
+
+- **Framework:** FastAPI
+- **ORM:** SQLAlchemy
+- **Validation:** Pydantic v2
+- **Migrations:** Alembic
+- **Auth:** JWT with bootstrap + login
+- **Storage:** Files under `STORAGE_ROOT` (relative paths in DB), served at `/assets`
+- **Observability:**
+  - Centralized UTC logging (configurable `LOG_LEVEL`)
+  - `/health` endpoint with environment/version/timestamp diagnostics
+
+Key modules:
+
+- `app/main.py`
+  - `create_app()` and lifespan.
+  - Mounts static assets: `/assets` → `STORAGE_ROOT`.
+  - Includes versioned API under `API_V1_PREFIX` (usually `/api`).
+
+- `app/core/config.py`
+  - Pydantic `Settings` using `ConfigDict`.
+  - Reads env vars such as:
+    - `ENVIRONMENT`, `APP_VERSION`, `PROJECT_NAME`, `API_V1_PREFIX`
+    - `DATABASE_URL`
+    - `STORAGE_ROOT`
+    - `SECRET_KEY`, `ACCESS_TOKEN_EXPIRE_MINUTES`
+    - `MAX_UPLOAD_BYTES`, thumbnail/PDF text limits
+    - `LOG_LEVEL`
+    - `VITE_API_BASE_URL`, `VITE_ASSET_BASE_URL` (when relevant)
+
+- `app/core/security.py`
+  - Password hashing (`hash_password`, `verify_password`) using bcrypt.
+  - JWT helpers (`create_access_token`, `decode_access_token`).
+  - `get_current_user` dependency for auth-guarded routes.
+
+- `app/core/storage.py`
+  - Builds safe **relative** paths under `STORAGE_ROOT`.
+  - `FileWriteGuard` to track created files and delete them on failure.
+  - Guards against writing outside `STORAGE_ROOT`.
+
+- `app/core/logging.py`
+  - Centralized `logging` config.
+  - Emits structured events with UTC timestamps, environment, and app version.
+
+- `app/database.py`
+  - SQLAlchemy engine + session factory.
+  - `get_db()` dependency with proper cleanup.
+
+- `app/models.py`
+  - `User` – auth user.
+  - `Item` – core content entity:
+    - UUID id
+    - `type` enum (e.g. url, image, pdf, etc.)
+    - `status` enum
+    - URL + file metadata
+    - `origin_domain`
+    - `created_at` / `updated_at` (timezone-aware UTC)
+  - `Tag`, `ItemTag` – many-to-many tagging per user.
+  - Alembic migrations live in `backend/alembic/versions/`.
+
+- `app/schemas.py`
+  - Pydantic models for:
+    - Auth payloads & token responses.
+    - Items (create, update, out).
+    - Tags & tag assignment.
+    - URL ingestion + upload payloads.
+    - Search/filter parameters (where modeled).
+
+- `app/api/auth.py`
+  - `POST /api/auth/bootstrap` – one-time admin creation.
+  - `POST /api/auth/login` – login, returns JWT.
+
+- `app/api/items.py`
+  - `GET /api/items` – list, search, filter, paginate items.
+  - `POST /api/items` – create item.
+  - `PATCH /api/items/{id}` – update.
+  - `DELETE /api/items/{id}` – delete.
+  - `POST /api/items/{id}/tags` – replace tags.
+  - `POST /api/items/url` – ingest a URL (generic/Twitter/X/Pinterest).
+  - `POST /api/items/upload` – upload image/PDF with validation.
+
+- `app/services/*`
+  - `items_service.py` – business logic for CRUD, filtering, tagging.
+  - `ingestion_service.py` – URL ingestion orchestration & preview image download.
+  - `file_processing.py` – upload pipelines (images → thumbnails, PDFs → text via **pypdf**).
+  - `metadata_service.py`, `url_extractors.py` – generic + domain-specific metadata extraction using BeautifulSoup.
+
+---
+
+### Frontend
+
+Located in `APP_/frontend`.
+
+- **Framework:** React (function components + hooks)
+- **Bundler:** Vite 7.x
+- **Routing:** `react-router-dom`
+- **Styling:** `src/styles.css` (clean, desktop-first theme)
+
+Key pieces:
+
+- `src/main.jsx`  
+  Mounts `<App />` and wraps with context providers.
+
+- `src/App.jsx`  
+  - Configures routes:
+    - `/login` – login page.
+    - `/` – grid view.
+    - `/items/:id` – item detail.
+  - Applies auth guard via `AuthContext`.
+
+- `src/context/AuthContext.jsx`  
+  - Holds auth state (JWT token, user info).
+  - Persists session (e.g., localStorage).
+  - Exposes `login`, `logout`, `isAuthenticated`.
+
+- `src/lib/api.js`  
+  - Small API client with base URL (usually `/api`).
+  - Automatically attaches `Authorization: Bearer <token>` when logged in.
+  - Helpers for:
+    - `login`
+    - `getItems` (search, filters, pagination)
+    - `createItemFromUrl`
+    - `uploadItem`
+    - `updateItem`
+    - `updateItemTags`
+
+- `src/lib/assets.js`  
+  - Builds full URLs from `VITE_ASSET_BASE_URL` + relative paths from backend (e.g., `uploads/thumbnails/...`).
+
+- `src/components/*`, `src/pages/*`  
+  - Login card (“BRAIN Inspiration Vault”).
+  - Item grid + cards.
+  - Detail view layout.
+  - Search/filter controls.
+  - Save-link and upload forms.
+  - Pagination controls.
+
+---
+
+## Prerequisites
+
+For **local dev (non-Docker)**:
+
+- **Python:** 3.11+ (virtualenv recommended)
+- **Node:** 20.19+ or 22.12+ (required for Vite 7)
+- **Postgres** (recommended) or SQLite for local play
+- **Git**
+
+For **Docker / Compose**:
+
+- Docker Engine or Docker Desktop  
+- docker compose plugin (`docker compose …`)
+
+---
+
+## Configuration
+
+Important env vars are documented in `.env.example` under `APP_`.
+
+Backend (via `app/core/config.py`) uses:
+
+- **Runtime**
+  - `ENVIRONMENT` – `development` or `production`
+  - `APP_VERSION` – arbitrary version string (also appears in logs and `/health`)
+
+- **API / App**
+  - `PROJECT_NAME`
+  - `API_V1_PREFIX` (default `/api`)
+
+- **Database**
+  - `DATABASE_URL` – e.g. `postgresql+psycopg2://user:pass@host:5432/brain`
+
+- **Auth**
+  - `SECRET_KEY`
+  - `ACCESS_TOKEN_EXPIRE_MINUTES`
+
+- **Storage & Upload**
+  - `STORAGE_ROOT` – absolute path inside container/host where files are stored.
+  - `MAX_UPLOAD_BYTES` – maximum upload size.
+  - Thumbnail + PDF extraction limits.
+
+- **Logging**
+  - `LOG_LEVEL` – `INFO`, `DEBUG`, etc.
+
+Frontend (Vite) uses:
+
+- `VITE_API_BASE_URL` (if set; otherwise client may assume `/api`)
+- `VITE_ASSET_BASE_URL` – typically the backend `/assets` URL (e.g. `http://localhost:4000/assets`)
+- `FRONTEND_PORT` – port exposed by Docker for the frontend service
+
+**Static assets:**  
+FastAPI mounts `STORAGE_ROOT` at `/assets`, so relative paths stored in the DB become accessible as:
+`<VITE_ASSET_BASE_URL>/<relative_path>`.
+
+---
+
+## Running Locally (dev)
+
+### 1. Backend
+
+From `APP_/backend`:
+
+```bash
+# (optional) create a venv one level up
+cd APP_
+python -m venv .venv
+source .venv/bin/activate
+
+cd backend
+
+# Install deps
+pip install -r requirements.txt
+
+# Run migrations (dev DB)
+python -m alembic upgrade head
+
+# Start API server
+python -m uvicorn app.main:create_app --reload --host 0.0.0.0 --port 4000
