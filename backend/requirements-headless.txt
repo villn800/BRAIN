@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Optional: needed only when enabling TWITTER_HEADLESS_ENABLED
+playwright

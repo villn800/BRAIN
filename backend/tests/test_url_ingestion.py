@@ -125,6 +125,52 @@ def test_twitter_video_ingestion_persists_extra(monkeypatch, app_client_factory)
     assert body["type"] == models.ItemType.tweet.value
 
 
+def test_twitter_headless_ingestion_persists_video_extra(monkeypatch, app_client_factory):
+    client, _ = app_client_factory()
+    headers = _auth_headers(client)
+    html = "<html><head><meta property='og:title' content='Author (@handle)'></head></html>"
+
+    class FakeSettings:
+        TWITTER_HEADLESS_ENABLED = True
+        TWITTER_HEADLESS_TIMEOUT_SECS = 1.0
+
+    monkeypatch.setattr(
+        ingestion_service.metadata_service,
+        "fetch_html",
+        lambda url, **_: metadata_service.HtmlFetchResult(html=html),
+    )
+    monkeypatch.setattr(
+        ingestion_service.url_extractors,
+        "get_settings",
+        lambda: FakeSettings(),
+    )
+    monkeypatch.setattr(
+        ingestion_service.url_extractors,
+        "resolve_twitter_video_headless",
+        lambda url, timeout=0.0: {
+            "video_url": "https://video.example/twitter.mp4",
+            "video_type": "mp4",
+            "poster_url": "https://pbs.twimg.com/media/poster.jpg",
+        },
+    )
+    monkeypatch.setattr(
+        ingestion_service,
+        "_download_primary_image",
+        lambda image_url, **_: ("uploads/images/twitter_poster.jpg", None),
+    )
+
+    response = client.post(
+        "/api/items/url",
+        json={"url": "https://x.com/user/status/999"},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["extra"]["media_kind"] == "video"
+    assert body["extra"]["video_url"] == "https://video.example/twitter.mp4"
+    assert body["file_path"] == "uploads/images/twitter_poster.jpg"
+
+
 def test_twitter_hls_ingestion_falls_back_to_image(monkeypatch, app_client_factory):
     client, _ = app_client_factory()
     headers = _auth_headers(client)

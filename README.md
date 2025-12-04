@@ -42,7 +42,18 @@ Visit `http://localhost:5173`, log in, and:
 ## ⚙️ Configuration
 Set in `.env` (see `.env.example`):
 - Backend: `DATABASE_URL`, `STORAGE_ROOT`, `SECRET_KEY`, `MAX_UPLOAD_BYTES`, `CORS_ALLOW_ORIGINS`, `LOG_LEVEL`, `APP_VERSION`.
+- Backend (optional headless Twitter video): `TWITTER_HEADLESS_ENABLED` (default `false`), `TWITTER_HEADLESS_TIMEOUT_SECS` (default `15.0` seconds).
 - Frontend: `VITE_API_BASE_URL` (default `/api`), `VITE_ASSET_BASE_URL` (default `/assets/`).
+
+## 🐦 Twitter video via headless browser (optional)
+- The headless resolver is off by default; enable it by setting `TWITTER_HEADLESS_ENABLED=true` (optionally tune `TWITTER_HEADLESS_TIMEOUT_SECS`).
+- Install the optional dependency only if you enable the flag:
+  ```bash
+  cd APP_/backend
+  pip install -r requirements-headless.txt
+  python -m playwright install
+  ```
+- This feature depends on X/Twitter’s frontend; use it in line with Twitter/X ToS and local law, and expect it may break when their UI changes.
 
 ## 📂 Project Layout
 ```

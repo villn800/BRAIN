@@ -108,6 +108,74 @@ def test_twitter_hls_fallback_to_image():
     assert metadata.image_url and metadata.image_url.endswith("hls_poster.jpg")
 
 
+def test_twitter_headless_runs_when_flag_enabled(monkeypatch):
+    html = """
+    <html>
+      <head>
+        <meta property='og:description' content='Tweet text here'>
+        <meta property='og:title' content='Author Name (@handle)'>
+      </head>
+    </html>
+    """
+
+    class FakeSettings:
+        TWITTER_HEADLESS_ENABLED = True
+        TWITTER_HEADLESS_TIMEOUT_SECS = 1.0
+
+    captured = {}
+
+    def _fake_resolver(url: str, timeout: float = 0.0):
+        captured["called"] = (url, timeout)
+        return {
+            "video_url": "https://video.example/video.mp4",
+            "video_type": "mp4",
+            "poster_url": "https://pbs.twimg.com/media/poster.jpg",
+        }
+
+    monkeypatch.setattr(url_extractors, "get_settings", lambda: FakeSettings())
+    monkeypatch.setattr(url_extractors, "resolve_twitter_video_headless", _fake_resolver)
+
+    metadata = url_extractors.extract_for_domain(
+        "twitter.com",
+        "https://twitter.com/user/status/123456",
+        html,
+    )
+    assert captured["called"][0].endswith("/123456")
+    assert metadata.extra["media_kind"] == "video"
+    assert metadata.extra["video_url"] == "https://video.example/video.mp4"
+    assert metadata.extra["video_type"] == "mp4"
+    assert metadata.image_url == "https://pbs.twimg.com/media/poster.jpg"
+
+
+def test_twitter_headless_skipped_when_flag_disabled(monkeypatch):
+    html = """
+    <html>
+      <head>
+        <meta property='og:description' content='Tweet text here'>
+        <meta property='og:title' content='Author Name (@handle)'>
+      </head>
+    </html>
+    """
+
+    class FakeSettings:
+        TWITTER_HEADLESS_ENABLED = False
+        TWITTER_HEADLESS_TIMEOUT_SECS = 1.0
+
+    def _fail_resolver(*_args, **_kwargs):
+        raise AssertionError("headless resolver should not be called")
+
+    monkeypatch.setattr(url_extractors, "get_settings", lambda: FakeSettings())
+    monkeypatch.setattr(url_extractors, "resolve_twitter_video_headless", _fail_resolver)
+
+    metadata = url_extractors.extract_for_domain(
+        "x.com",
+        "https://x.com/user/status/123456",
+        html,
+    )
+    assert metadata.extra.get("video_url") is None
+    assert metadata.extra.get("media_kind") == "image"
+
+
 def test_pinterest_extractor_handles_basic_meta():
     html = """
     <meta property='og:title' content='Pin Title'>
