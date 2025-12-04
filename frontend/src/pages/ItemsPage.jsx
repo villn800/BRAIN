@@ -30,10 +30,15 @@ export default function ItemsPage() {
   const [refreshToken, setRefreshToken] = useState(0)
   const [tags, setTags] = useState([])
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const { settings } = useSettings()
 
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters])
   const selectedItemId = searchParams.get('itemId')
+
+  useEffect(() => {
+    document.title = 'BRAIN — Board'
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -121,61 +126,57 @@ export default function ItemsPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const columnWidth = {
-    compact: 240,
-    cozy: 280,
-    airy: 320,
-  }[settings.gridDensity]
-
-  const thumbHeight = {
-    small: 180,
-    medium: 230,
-    large: 300,
-  }[settings.thumbSize]
-
-  const gridStyle = {
-    '--masonry-column-width': `${columnWidth}px`,
-    '--masonry-gap':
-      settings.gridDensity === 'compact' ? '0.9rem' : settings.gridDensity === 'airy' ? '1.4rem' : '1.1rem',
-    '--thumb-min-height': `${thumbHeight}px`,
-  }
-
   const pageClassNames = [
     'board-page',
+    'theme-editorial',
     `density-${settings.gridDensity}`,
+    `thumb-${settings.thumbSize}`,
     `theme-${settings.themeIntensity}`,
     `motion-${settings.motion}`,
     `overlay-${settings.overlayMode}`,
+    toolsOpen ? 'tools-open' : '',
   ].join(' ')
 
   return (
     <div className={pageClassNames}>
       <div className="board-backdrop" aria-hidden />
       <div className="board-layout">
-        <aside className="command-rail">
-          <div className="rail-title">
-            <p className="eyebrow">Inputs</p>
-            <h3>Search, save, upload</h3>
-            <p className="muted">Pinned controls stay put while the board flows.</p>
-          </div>
-          <div className="rail-scroll">
-            <SearchFilters
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              onReset={handleResetFilters}
-              availableTags={tags}
-            />
-            <SaveLinkForm onItemCreated={handleItemCreated} />
-            <UploadForm onItemCreated={handleItemCreated} />
+        <aside
+          className="command-rail"
+          aria-label="Board tools"
+          aria-expanded={toolsOpen}
+          onClick={() => setToolsOpen(false)}
+        >
+          <div className="rail-surface" onClick={(event) => event.stopPropagation()}>
+            <div className="rail-title">
+              <p className="eyebrow">Tools</p>
+              <h3>Filters, links, uploads</h3>
+              <p className="muted">A compact toolbox beside the gallery wall.</p>
+            </div>
+            <div className="rail-scroll">
+              <SearchFilters
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onReset={handleResetFilters}
+                availableTags={tags}
+              />
+              <SaveLinkForm onItemCreated={handleItemCreated} />
+              <UploadForm onItemCreated={handleItemCreated} />
+            </div>
+            <button type="button" className="ghost rail-close" onClick={() => setToolsOpen(false)}>
+              Close tools
+            </button>
           </div>
         </aside>
 
         <section className="board-main">
           <div className="board-top">
             <div>
-              <p className="eyebrow">Inspiration board</p>
-              <h1>Studio masonry view</h1>
-              <p className="muted">High-density, flowing tiles kept above the fold with hover metadata.</p>
+              <p className="eyebrow">Board</p>
+              <h1>Editorial spread</h1>
+              <p className="muted">
+                Imagery first. Adjust density, thumb scale, overlays, and motion to match your screen and pace.
+              </p>
               <div className="board-meta">
                 <span className="pill subtle-pill">{settings.gridDensity} density</span>
                 <span className="pill subtle-pill">{settings.thumbSize} thumbs</span>
@@ -185,6 +186,9 @@ export default function ItemsPage() {
               </div>
             </div>
             <div className="board-actions">
+              <button type="button" className="ghost tools-toggle" onClick={() => setToolsOpen(true)}>
+                Tools
+              </button>
               <button type="button" className="ghost" onClick={handleRefresh}>
                 Refresh ↻
               </button>
@@ -207,7 +211,6 @@ export default function ItemsPage() {
             items={items}
             loading={loading}
             onSelectItem={handleSelectItem}
-            gridStyle={gridStyle}
             overlayMode={settings.overlayMode}
           />
 

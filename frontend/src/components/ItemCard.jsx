@@ -18,6 +18,17 @@ function formatDate(value) {
 
 export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
   const imageUrl = buildAssetUrl(item.thumbnail_path || item.file_path)
+  const overlayMeta = [
+    item.origin_domain || item.type,
+    item.tags?.[0]?.name || formatDate(item.created_at),
+  ]
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(' • ')
+  const overlayHint =
+    item.description && item.description.length > 140
+      ? `${item.description.slice(0, 140)}…`
+      : item.description || overlayMeta || 'Open to see details'
   const Tag = onSelect ? 'button' : Link
   const tagProps = onSelect
     ? {
@@ -41,27 +52,13 @@ export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
         )}
         <div className="card-overlay">
           <div className="overlay-top">
-            <span className="pill subtle-pill">{item.origin_domain || item.type}</span>
-            <span className="overlay-date">{formatDate(item.created_at)}</span>
+            <span className="overlay-meta">{overlayMeta}</span>
           </div>
           <div className="overlay-bottom">
             <p className="overlay-title" title={item.title}>
               {item.title}
             </p>
-            {item.tags?.length ? (
-              <div className="overlay-tags">
-                {item.tags.slice(0, 3).map((tag) => (
-                  <span key={tag.id} className="tag-pill">
-                    {tag.name}
-                  </span>
-                ))}
-                {item.tags.length > 3 && (
-                  <span className="tag-pill muted-pill">+{item.tags.length - 3}</span>
-                )}
-              </div>
-            ) : (
-              <p className="overlay-hint">Open to see details</p>
-            )}
+            <p className="overlay-hint">{overlayHint}</p>
           </div>
         </div>
       </div>
