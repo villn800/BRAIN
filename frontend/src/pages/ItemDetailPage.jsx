@@ -38,6 +38,14 @@ export default function ItemDetailPage() {
     }
   }, [itemId])
 
+  useEffect(() => {
+    if (item?.title) {
+      document.title = `BRAIN — ${item.title}`
+    } else {
+      document.title = 'BRAIN — Item'
+    }
+  }, [item])
+
   if (loading) {
     return <div className="loading-row">Loading item…</div>
   }
@@ -83,6 +91,16 @@ export default function ItemDetailPage() {
             </a>
           )}
         </div>
+      </div>
+
+      <div className="detail-meta-bar">
+        <span className="pill subtle-pill">{item.origin_domain || item.type}</span>
+        <span className="pill subtle-pill">{formatDate(item.created_at)}</span>
+        {item.tags?.length ? (
+          <span className="pill subtle-pill">
+            {item.tags.length} tag{item.tags.length === 1 ? '' : 's'}
+          </span>
+        ) : null}
       </div>
 
       {previewUrl && (

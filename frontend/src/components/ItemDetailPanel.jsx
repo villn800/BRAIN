@@ -180,6 +180,15 @@ export default function ItemDetailPanel({ itemId, onClose }) {
 
         {!loading && !error && item ? (
           <div className="detail-panel-body">
+            <div className="detail-meta-bar">
+              <span className="pill subtle-pill">{item.origin_domain || item.type}</span>
+              <span className="pill subtle-pill">{formatDate(item.created_at)}</span>
+              {item.tags?.length ? (
+                <span className="pill subtle-pill">
+                  {item.tags.length} tag{item.tags.length === 1 ? '' : 's'}
+                </span>
+              ) : null}
+            </div>
             {previewUrl && (
               <div className="detail-preview">
                 <img src={previewUrl} alt={item.title} />
