@@ -7,16 +7,12 @@
   - Backend initiatives (H1–H6) complete.
   - Frontend UX (H7) complete.
   - Ops/observability/deployment (H8) complete.
-- Initiative 6 (Studio board refresh) in progress:
-  - Inputs rail left; board hero + header on right with inline Settings + Refresh.
-  - Settings expanded (grid density, thumb size, overlay, theme intensity soft/bold, motion standard/reduced) with localStorage + defaults respecting reduced motion.
-  - Studio gradient theme + tokens applied to backgrounds, cards, masonry tiles, detail panel, and settings dialog; motion-safe hover tuning.
-  - Settings dialog layout tightened (two-column options, keyboard trap, reset) after hook-order fix.
-  - Playbook v2 dashboard updated; README text refreshed for new layout/theme (screenshots pending).
-- Initiative 8 (Twitter media vs avatars + Delete) underway:
-  - Twitter extractor gathers multiple candidates (og:image, twitter:image, JSON-LD) and demotes `/profile_images/` avatars in favor of `/media/` or card images.
-  - Fixtures for tweets live in `backend/tests/fixtures/twitter/` to keep regression tests honest.
-  - New delete flow: `items_service.delete_item_and_assets` plus storage `safe_remove_path` and `DELETE /api/items/{id}`; detail panel has a Delete button.
+- Initiative 6 (Studio board refresh) in progress (UI polish/screenshot tasks pending).
+- Initiative 8 (Twitter media vs avatars + Delete) completed:
+  - Twitter extractor gathers multiple candidates (og:image, twitter:image, JSON-LD), demotes `/profile_images/` avatars, and picks `/media`/card images; avatar is kept in `metadata.extra`.
+  - Fixtures for tweets live in `backend/tests/fixtures/twitter/`; ingestion tests assert media chosen for juniorkingpp/girlflours.
+  - Delete flow shipped: `items_service.delete_item_and_assets` + `storage.safe_remove_path`, `DELETE /api/items/{id}`; detail overlay Delete button wired with confirm + inline errors and board removal; API client handles empty DELETE responses.
+  - Docs/playbook/README updated; social extractor backlog added; tests green (`python -m pytest`, `npm run build`).
 - Static assets:
   - Stored under `STORAGE_ROOT`.
   - Served via FastAPI at `/assets`.

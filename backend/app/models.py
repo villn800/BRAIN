@@ -12,6 +12,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Index,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -87,6 +88,7 @@ class Item(Base):
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     text_content = Column(Text, nullable=True)
+    extra = Column(JSON, nullable=True)
     thumbnail_path = Column(Text, nullable=True)
     file_path = Column(Text, nullable=True)
     original_filename = Column(String(255), nullable=True)

@@ -80,6 +80,34 @@ def test_twitter_extractor_text_only_falls_back_to_avatar():
     assert metadata.extra.get("avatar_url") == metadata.image_url
 
 
+def test_twitter_video_detection():
+    html = (FIXTURES / "video_simple.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "twitter.com",
+        "https://twitter.com/user/status/555",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.extra.get("media_kind") == "video"
+    assert metadata.extra.get("video_url", "").endswith(".mp4")
+    assert metadata.extra.get("video_type") == "mp4"
+    assert metadata.item_type == models.ItemType.tweet
+    assert metadata.image_url  # poster retained
+
+
+def test_twitter_hls_fallback_to_image():
+    html = (FIXTURES / "video_hls.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "x.com",
+        "https://x.com/user/status/777",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.extra.get("media_kind") == "image"
+    assert metadata.extra.get("video_url") is None
+    assert metadata.image_url and metadata.image_url.endswith("hls_poster.jpg")
+
+
 def test_pinterest_extractor_handles_basic_meta():
     html = """
     <meta property='og:title' content='Pin Title'>

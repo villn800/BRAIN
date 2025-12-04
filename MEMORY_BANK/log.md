@@ -12,6 +12,13 @@ Append new entries at the **top** (most recent first).
 - Fixed settings modal hook order and layout (two-column options aligned; keyboard trap intact).
 - Tests: `npm run build` (frontend) passed; backend pytest now run from a new `.venv` (`cd APP_/backend && source .venv/bin/activate && python -m pytest`) with 52 passing.
 
+## 2025-12-05 – Initiative 8: Twitter Media Heuristics + Delete Flow
+
+- Twitter/X extractor now collects all candidates (og:image, twitter:image, JSON-LD), demotes `/profile_images/` avatars, prefers `/media`/card images, and retains avatar in `metadata.extra`; fixtures added under `backend/tests/fixtures/twitter/`.
+- Ingestion tests verify juniorkingpp/girlflours media selection; README documents “prefer media over avatars.”
+- Delete flow shipped: `items_service.delete_item_and_assets` + `storage.safe_remove_path`, `DELETE /api/items/{id}`; frontend detail overlay wired with Delete confirm/inline errors, API client handles empty responses.
+- Tests: `cd APP_/backend && python -m pytest` → 62 passing; `cd APP_/frontend && npm run build` succeeds.
+
 ## 2025-11-30 – v1 Close-Out
 
 - Completed Initiatives 1–4 from `BRAIN_MASTER_PLAYBOOK.md` plus deployment close‑out.

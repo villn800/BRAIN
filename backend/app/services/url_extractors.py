@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from urllib.parse import urlparse
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 from bs4 import BeautifulSoup
 
@@ -37,6 +37,7 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
     metadata.item_type = models.ItemType.tweet
     metadata.title = tweet_text or author
     metadata.description = tweet_text or author
+    video_candidates = _gather_twitter_videos(soup)
     candidates = _gather_twitter_images(soup)
     avatar = _first_avatar(candidates)
     chosen = _pick_best_image(candidates)
@@ -45,6 +46,14 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
         "author": author,
         "timestamp": timestamp,
     }
+    video_url, video_type = _pick_best_video(video_candidates)
+    if video_url:
+        metadata.extra["media_kind"] = "video"
+        metadata.extra["video_url"] = video_url
+        if video_type:
+            metadata.extra["video_type"] = video_type
+    else:
+        metadata.extra["media_kind"] = "image"
     if avatar:
         metadata.extra["avatar_url"] = avatar
     if chosen is None:
@@ -121,6 +130,40 @@ def _gather_twitter_images(soup: BeautifulSoup) -> List[str]:
     return candidates
 
 
+def _gather_twitter_videos(soup: BeautifulSoup) -> List[Tuple[str, str | None]]:
+    """Collect candidate video URLs with optional type hints."""
+    candidates: List[Tuple[str, str | None]] = []
+    seen: set[str] = set()
+
+    def _add(url: str | None, type_hint: str | None) -> None:
+        if not url:
+            return
+        if url in seen:
+            return
+        seen.add(url)
+        candidates.append((url, type_hint))
+
+    for tag in soup.find_all("meta", attrs={"property": "og:video"}):
+        _add(tag.get("content"), None)
+    for tag in soup.find_all("meta", attrs={"property": "og:video:secure_url"}):
+        _add(tag.get("content"), None)
+    for tag in soup.find_all("meta", attrs={"name": "twitter:player:stream"}):
+        _add(tag.get("content"), None)
+
+    # Type hints
+    og_video_type = _get_meta(soup, "og:video:type")
+    twitter_stream_type = _get_meta(soup, "twitter:player:stream:content_type")
+    if candidates:
+        # Attach type hints to existing candidates when present.
+        updated: List[Tuple[str, str | None]] = []
+        for url, existing in candidates:
+            hint = existing or og_video_type or twitter_stream_type
+            updated.append((url, hint))
+        candidates = updated
+
+    return candidates
+
+
 def _parse_json_ld_images(payload: str | None) -> Iterable[str]:
     if not payload:
         return []
@@ -184,6 +227,26 @@ def _pick_best_image(candidates: List[str]) -> str | None:
     if non_avatar:
         return non_avatar[0]
     return candidates[0]
+
+
+def _pick_best_video(candidates: List[Tuple[str, str | None]]) -> Tuple[str | None, str | None]:
+    if not candidates:
+        return None, None
+
+    def _is_mp4(url: str, type_hint: str | None) -> bool:
+        lowered = url.lower()
+        if lowered.endswith(".mp4"):
+            return True
+        if type_hint and "mp4" in type_hint.lower():
+            return True
+        return False
+
+    for url, type_hint in candidates:
+        if _is_mp4(url, type_hint):
+            return url, "mp4"
+
+    # If no MP4 found, we decline to return HLS-only URLs for v1.
+    return None, None
 
 
 def _first_avatar(candidates: List[str]) -> str | None:

@@ -701,6 +701,33 @@ button:hover:not(:disabled) {
   transition: transform var(--transition-medium);
 }
 
+.video-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(6, 5, 4, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.video-badge-icon {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent #fff;
+  display: block;
+}
+
 .item-card:hover .item-media img {
   transform: scale(var(--hover-scale));
 }
@@ -1226,6 +1253,12 @@ button:hover:not(:disabled) {
 .detail-preview img {
   width: 100%;
   display: block;
+}
+
+.detail-preview video {
+  width: 100%;
+  display: block;
+  background: #000;
 }
 
 .detail-section {

@@ -67,6 +67,7 @@ def ingest_url(
         source_url=normalized.url,
         origin_domain=normalized.domain,
         file_path=file_path,
+        extra=metadata.extra or None,
     )
 
     item = items_service.create_item(db, user, item_payload)

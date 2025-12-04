@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, constr
@@ -16,6 +16,7 @@ class ItemBase(BaseModel):
     source_url: Optional[HttpUrl] = None
     origin_domain: Optional[str] = Field(default=None, max_length=255)
     status: ItemStatus = ItemStatus.ok
+    extra: Optional[dict[str, Any]] = None
 
 
 class ItemCreate(ItemBase):

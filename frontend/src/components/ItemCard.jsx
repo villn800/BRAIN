@@ -18,6 +18,7 @@ function formatDate(value) {
 
 export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
   const imageUrl = buildAssetUrl(item.thumbnail_path || item.file_path)
+  const isVideo = item?.extra?.media_kind === 'video' || Boolean(item?.extra?.video_url)
   const overlayMeta = [
     item.origin_domain || item.type,
     item.tags?.[0]?.name || formatDate(item.created_at),
@@ -42,6 +43,12 @@ export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
   return (
     <Tag className={className} aria-label={item.title} {...tagProps}>
       <div className="item-media">
+        {isVideo && (
+          <span className="video-badge">
+            <span className="video-badge-icon" aria-hidden="true" />
+            Video
+          </span>
+        )}
         {imageUrl ? (
           <img src={imageUrl} alt={item.title} loading="lazy" />
         ) : (
