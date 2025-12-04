@@ -55,7 +55,7 @@ APP_/
 
 ## 🔍 API Quick Reference
 - `POST /api/auth/bootstrap` (one-time admin) · `POST /api/auth/login`
-- `GET /api/items` (search/filter/paginate) · `GET /api/items/{id}`
+- `GET /api/items` (search/filter/paginate) · `GET /api/items/{id}` · `DELETE /api/items/{id}`
 - `POST /api/items/url` (ingest URL) · `POST /api/items/upload` (image/PDF)
 - `PUT /api/items/{id}/tags` (replace tags)
 - Static assets: `/assets/<relative_path>`
@@ -66,5 +66,7 @@ APP_/
 
 ## 📜 Notes
 - Settings are per-browser (localStorage) and do not touch backend schema.
+- Twitter/X ingestion prefers tweet media/card images over author avatars when those tags are present; text-only tweets still fall back to avatars.
+- Item detail view includes a Delete control that calls `DELETE /api/items/{id}` and removes stored files alongside the DB row.
 - Masonry uses CSS columns for lightweight packing; can be swapped for JS layout later if drag/drop is added.
 - ADR for the masonry/panel/settings decision: `docs/_playbook/ADR_masonry_panel.md`.

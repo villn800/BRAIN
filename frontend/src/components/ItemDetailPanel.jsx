@@ -32,10 +32,12 @@ function formatBytes(bytes) {
   return `${size.toFixed(1)} ${units[unitIndex]}`
 }
 
-export default function ItemDetailPanel({ itemId, onClose }) {
+export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
   const [item, setItem] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
+  const [deleting, setDeleting] = useState(false)
   const panelRef = useRef(null)
 
   useEffect(() => {
@@ -45,6 +47,8 @@ export default function ItemDetailPanel({ itemId, onClose }) {
     let active = true
     setLoading(true)
     setError(null)
+    setDeleteError(null)
+    setDeleting(false)
     setItem(null)
     api
       .getItem(itemId)
@@ -136,6 +140,29 @@ export default function ItemDetailPanel({ itemId, onClose }) {
   const previewUrl = buildAssetUrl(item?.thumbnail_path || item?.file_path)
   const downloadUrl = buildAssetUrl(item?.file_path)
 
+  const handleDelete = async () => {
+    if (!item?.id || deleting) {
+      return
+    }
+    const confirmed = window.confirm(
+      'Delete this item from your vault? This removes the preview and stored files.'
+    )
+    if (!confirmed) {
+      return
+    }
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await api.deleteItem(item.id)
+      onDeleted?.(item.id)
+      onClose?.()
+    } catch (exc) {
+      setDeleteError(exc.message || 'Delete failed')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const content = (
     <div className="detail-overlay" onClick={onClose}>
       <div
@@ -169,11 +196,18 @@ export default function ItemDetailPanel({ itemId, onClose }) {
                 Download
               </a>
             )}
+            {item?.id && (
+              <button type="button" className="ghost danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            )}
             <button type="button" className="ghost" onClick={onClose}>
               Close ✕
             </button>
           </div>
         </div>
+
+        {deleteError && <div className="error-inline">{deleteError}</div>}
 
         {loading && <div className="loading-row">Loading item…</div>}
         {error && <div className="error-banner">{error}</div>}

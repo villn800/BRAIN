@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Iterable, List, Sequence
 from uuid import UUID
@@ -12,6 +13,7 @@ from .. import models, schemas
 from ..core import storage
 
 PATH_FIELDS = ("file_path", "thumbnail_path")
+logger = logging.getLogger(__name__)
 
 
 def _derive_origin_domain(source_url: str | None) -> str | None:
@@ -163,8 +165,24 @@ def update_item(
 
 
 def delete_item(db: Session, item: models.Item) -> None:
+    paths = _collect_paths(item)
     db.delete(item)
     db.commit()
+    for path in paths:
+        storage.safe_remove_path(path)
+
+
+def delete_item_and_assets(
+    db: Session,
+    user: models.User,
+    item_id: UUID,
+) -> bool:
+    item = get_item(db, user, item_id)
+    if not item:
+        return False
+    delete_item(db, item)
+    logger.info("Deleted item and assets", extra={"user_id": str(user.id), "item_id": str(item.id)})
+    return True
 
 
 def set_item_tags(
@@ -218,3 +236,11 @@ def _normalize_tag_filters(values: Iterable[str]) -> List[str]:
         normalized.append(cleaned)
     return normalized
 
+
+def _collect_paths(item: models.Item) -> List[str]:
+    paths: List[str] = []
+    for field in PATH_FIELDS:
+        value = getattr(item, field, None)
+        if value:
+            paths.append(value)
+    return paths

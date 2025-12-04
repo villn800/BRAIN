@@ -13,6 +13,10 @@
   - Studio gradient theme + tokens applied to backgrounds, cards, masonry tiles, detail panel, and settings dialog; motion-safe hover tuning.
   - Settings dialog layout tightened (two-column options, keyboard trap, reset) after hook-order fix.
   - Playbook v2 dashboard updated; README text refreshed for new layout/theme (screenshots pending).
+- Initiative 8 (Twitter media vs avatars + Delete) underway:
+  - Twitter extractor gathers multiple candidates (og:image, twitter:image, JSON-LD) and demotes `/profile_images/` avatars in favor of `/media/` or card images.
+  - Fixtures for tweets live in `backend/tests/fixtures/twitter/` to keep regression tests honest.
+  - New delete flow: `items_service.delete_item_and_assets` plus storage `safe_remove_path` and `DELETE /api/items/{id}`; detail panel has a Delete button.
 - Static assets:
   - Stored under `STORAGE_ROOT`.
   - Served via FastAPI at `/assets`.

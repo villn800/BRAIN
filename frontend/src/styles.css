@@ -203,6 +203,23 @@ button:hover:not(:disabled) {
   box-shadow: 0 14px 26px rgba(15, 23, 42, 0.12);
 }
 
+.ghost.danger {
+  border-color: #f59e0b;
+  color: #b91c1c;
+  background: linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 230, 209, 0.65));
+}
+
+.ghost.danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-inline {
+  color: #b91c1c;
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+}
+
 .muted {
   color: var(--text-muted);
   margin: 0.4rem 0 0;
