@@ -4,6 +4,13 @@ Append new entries at the **top** (most recent first).
 
 ---
 
+## 2025-12-04 – Initiative 9: Twitter headless video fallback (option C)
+
+- Added gated config flags `TWITTER_HEADLESS_ENABLED` (default off) and `TWITTER_HEADLESS_TIMEOUT_SECS`; documented optional Playwright install (`requirements-headless.txt`, `python -m playwright install`).
+- Implemented headless resolver (`app/services/twitter_headless.py`) sniffing `video.twimg.com` network responses, preferring MP4; logs when Playwright missing or no media.
+- Integrated into `_extract_twitter` behind flag + `/status/` check; ingestion test ensures headless video extra persisted; extractor tests cover flag-on/off; Playwright import remains optional when disabled.
+- Tests: `cd APP_/backend && python -m pytest` → 71 passing.
+
 ## 2025-12-05 – Initiative 6: Studio Board Layout & Theme
 
 - Refactored board layout: inputs rail on the left, Inspiration Board hero on the right with inline Settings + Refresh; header copy tightened.

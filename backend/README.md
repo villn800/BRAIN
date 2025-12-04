@@ -21,6 +21,15 @@ cp .env.example .env
 
 > When using Docker Compose (`APP_/deploy/docker-compose.yml`), the backend container reads environment variables from `APP_/deploy/.env`. Keep the values in sync with `backend/.env` for a smooth local/dev parity.
 
+## Optional: headless Twitter video fallback
+- Controlled by env vars: `TWITTER_HEADLESS_ENABLED` (default `false`) and `TWITTER_HEADLESS_TIMEOUT_SECS` (default `15.0` seconds).
+- Only install the optional dependency when enabling the flag:
+  ```bash
+  pip install -r requirements-headless.txt
+  python -m playwright install
+  ```
+- The backend still runs and tests pass without Playwright installed when the feature is disabled.
+
 ## Tests
 
 Run the backend unit tests (uses pytest + FastAPI TestClient):
@@ -29,4 +38,3 @@ Run the backend unit tests (uses pytest + FastAPI TestClient):
 cd /Users/robot1/Downloads/CURSOR_/BRAIN_/APP_/backend
 pytest
 ```
-

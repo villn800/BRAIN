@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO")
     ENVIRONMENT: str = Field(default="development")
     APP_VERSION: str = Field(default="dev")
+    TWITTER_HEADLESS_ENABLED: bool = Field(default=False)
+    TWITTER_HEADLESS_TIMEOUT_SECS: float = Field(default=15.0, ge=1.0)
 
     @field_validator("API_V1_PREFIX")
     @classmethod

@@ -8,7 +8,9 @@ from typing import Iterable, List, Tuple
 from bs4 import BeautifulSoup
 
 from .. import models
+from ..core.config import get_settings
 from .metadata_service import MetadataResult
+from .twitter_headless import resolve_twitter_video_headless
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +75,30 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
             chosen,
             avatar,
         )
+    settings = get_settings()
+    should_try_headless = (
+        settings.TWITTER_HEADLESS_ENABLED
+        and "/status/" in parsed.path
+        and not metadata.extra.get("video_url")
+    )
+    if should_try_headless:
+        try:
+            result = resolve_twitter_video_headless(
+                url,
+                timeout=settings.TWITTER_HEADLESS_TIMEOUT_SECS,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Headless Twitter resolver failed for %s: %s", url, exc)
+            result = None
+        if result and result.get("video_url"):
+            metadata.extra["media_kind"] = "video"
+            metadata.extra["video_url"] = result["video_url"]
+            metadata.extra["video_type"] = result.get("video_type") or "mp4"
+            if not metadata.image_url and result.get("poster_url"):
+                metadata.image_url = result["poster_url"]
+            logger.info("Headless Twitter resolver attached video for %s", url)
+        else:
+            logger.info("Headless Twitter resolver found no video for %s", url)
     return metadata
 
 

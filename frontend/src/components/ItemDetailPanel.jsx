@@ -142,15 +142,6 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
   const isVideo = Boolean(videoUrl)
   const downloadUrl = buildAssetUrl(item?.file_path)
 
-  useEffect(() => {
-    if (!item) {
-      return
-    }
-    // Debug visibility for video metadata to trace why player may not render
-    // eslint-disable-next-line no-console
-    console.debug('ItemDetailPanel item.extra', item.extra)
-  }, [item])
-
   const handleDelete = async () => {
     if (!item?.id || deleting) {
       return
