@@ -171,13 +171,12 @@ def delete_item(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    item = items_service.get_item(db, current_user, item_id)
-    if not item:
+    deleted = items_service.delete_item_and_assets(db, current_user, item_id)
+    if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
-    items_service.delete_item(db, item)
     logger.info(
         "Item deleted",
-        extra={"user_id": str(current_user.id), "item_id": str(item.id)},
+        extra={"user_id": str(current_user.id), "item_id": str(item_id)},
     )
 
 

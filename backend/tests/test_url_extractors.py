@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from app import models
 from app.services import url_extractors
+
+FIXTURES = Path(__file__).parent / "fixtures" / "twitter"
 
 
 def test_twitter_extractor_returns_metadata():
@@ -25,6 +29,55 @@ def test_twitter_extractor_returns_metadata():
     assert metadata.title == "Tweet text here"
     assert metadata.image_url == "https://cdn/twitter.jpg"
     assert metadata.extra["author"].startswith("Author")
+
+
+def test_twitter_extractor_prefers_media_over_avatar_with_json_ld():
+    html = (FIXTURES / "quote_tweet_with_media_juniorkingpp.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "x.com",
+        "https://x.com/juniorkingpp/status/1996087779269464125",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.image_url
+    assert "/media/" in metadata.image_url
+    assert metadata.extra.get("avatar_url")
+    assert "/profile_images/" in metadata.extra["avatar_url"]
+
+
+def test_twitter_extractor_handles_card_image_meta():
+    html = (FIXTURES / "quote_tweet_or_card_girlflours.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "twitter.com",
+        "https://twitter.com/girlflours/status/1996331045344735356",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.image_url and "/media/" in metadata.image_url
+    assert metadata.extra.get("avatar_url") is None
+
+
+def test_twitter_extractor_simple_image_tweet():
+    html = (FIXTURES / "simple_image_tweet.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "twitter.com",
+        "https://twitter.com/Interior/status/463440424141459456",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.image_url and "/media/" in metadata.image_url
+
+
+def test_twitter_extractor_text_only_falls_back_to_avatar():
+    html = (FIXTURES / "text_only_tweet.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "x.com",
+        "https://x.com/jack/status/20",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.image_url and "/profile_images/" in metadata.image_url
+    assert metadata.extra.get("avatar_url") == metadata.image_url
 
 
 def test_pinterest_extractor_handles_basic_meta():

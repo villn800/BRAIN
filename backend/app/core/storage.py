@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from uuid import UUID
 
 from .config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _storage_root() -> Path:
@@ -73,6 +76,21 @@ def normalize_relative_path(path: str | Path | None) -> str | None:
     return str(resolved.relative_to(base))
 
 
+def safe_remove_path(relative_path: str | None) -> None:
+    """Best-effort removal of a STORAGE_ROOT-relative file."""
+    if not relative_path:
+        return
+    try:
+        target = resolve_storage_path(relative_path, create_parents=False)
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.debug("Skipping delete for %s: %s", relative_path, exc)
+        return
+    try:
+        target.unlink(missing_ok=True)
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.debug("Failed to delete %s: %s", target, exc)
+
+
 class FileWriteGuard:
     """Track files created during an operation and delete them if it fails."""
 
@@ -106,4 +124,3 @@ class FileWriteGuard:
         else:
             self._paths.clear()
         return False
-

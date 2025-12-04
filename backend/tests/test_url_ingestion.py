@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -12,6 +13,7 @@ BOOTSTRAP = {
     "username": "ingester",
     "password": "SecurePass123!",
 }
+FIXTURES = Path(__file__).parent / "fixtures" / "twitter"
 
 
 def _auth_headers(client):
@@ -91,6 +93,72 @@ def test_twitter_ingestion_sets_item_type(monkeypatch, app_client_factory):
     body = response.json()
     assert body["type"] == models.ItemType.tweet.value
     assert body["status"] == models.ItemStatus.pending.value
+
+
+def test_twitter_ingestion_prefers_media_over_avatar(monkeypatch, app_client_factory):
+    client, _ = app_client_factory()
+    headers = _auth_headers(client)
+    html = (FIXTURES / "quote_tweet_with_media_juniorkingpp.html").read_text()
+
+    monkeypatch.setattr(
+        ingestion_service.metadata_service,
+        "fetch_html",
+        lambda url, **_: metadata_service.HtmlFetchResult(html=html),
+    )
+    captured: dict[str, str] = {}
+
+    def _fake_download(image_url: str, **kwargs):
+        captured["url"] = image_url
+        return ("uploads/images/media.jpg", None)
+
+    monkeypatch.setattr(
+        ingestion_service,
+        "_download_primary_image",
+        _fake_download,
+    )
+
+    response = client.post(
+        "/api/items/url",
+        json={"url": "https://x.com/juniorkingpp/status/1996087779269464125"},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    assert captured["url"].startswith("https://pbs.twimg.com/media/")
+    body = response.json()
+    assert body["file_path"] == "uploads/images/media.jpg"
+
+
+def test_twitter_ingestion_uses_card_image(monkeypatch, app_client_factory):
+    client, _ = app_client_factory()
+    headers = _auth_headers(client)
+    html = (FIXTURES / "quote_tweet_or_card_girlflours.html").read_text()
+
+    monkeypatch.setattr(
+        ingestion_service.metadata_service,
+        "fetch_html",
+        lambda url, **_: metadata_service.HtmlFetchResult(html=html),
+    )
+    captured: dict[str, str] = {}
+
+    def _fake_download(image_url: str, **kwargs):
+        captured["url"] = image_url
+        return ("uploads/images/card.jpg", None)
+
+    monkeypatch.setattr(
+        ingestion_service,
+        "_download_primary_image",
+        _fake_download,
+    )
+
+    response = client.post(
+        "/api/items/url",
+        json={"url": "https://x.com/girlflours/status/1996331045344735356"},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    assert captured["url"].startswith("https://pbs.twimg.com/media/")
+    body = response.json()
+    assert body["file_path"] == "uploads/images/card.jpg"
 
 
 def test_ingestion_handles_fetch_failure(monkeypatch, app_client_factory):

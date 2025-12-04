@@ -126,6 +126,13 @@ export default function ItemsPage() {
     setSearchParams(next, { replace: true })
   }
 
+  const handleItemDeleted = (id) => {
+    setItems((prev) => prev.filter((item) => item.id !== id))
+    if (selectedItemId === id) {
+      handleClosePanel()
+    }
+  }
+
   const pageClassNames = [
     'board-page',
     'theme-editorial',
@@ -223,7 +230,9 @@ export default function ItemsPage() {
           )}
         </section>
 
-        {selectedItemId && <ItemDetailPanel itemId={selectedItemId} onClose={handleClosePanel} />}
+        {selectedItemId && (
+          <ItemDetailPanel itemId={selectedItemId} onClose={handleClosePanel} onDeleted={handleItemDeleted} />
+        )}
         <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </div>
     </div>

@@ -38,3 +38,22 @@ def test_resolve_storage_path_blocks_traversal(app_client_factory) -> None:
 
     with pytest.raises(ValueError):
         storage.normalize_relative_path("../../etc/passwd")
+
+
+def test_safe_remove_path_removes_files_and_ignores_missing(app_client_factory) -> None:
+    _, storage_root = app_client_factory()
+    rel_path = f"uploads/test/{uuid4().hex}.txt"
+    target = storage_root / rel_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("to-delete")
+
+    storage.safe_remove_path(rel_path)
+    assert not target.exists()
+
+    # Missing path should not raise
+    storage.safe_remove_path(rel_path)
+
+
+def test_safe_remove_path_blocks_traversal(app_client_factory) -> None:
+    app_client_factory()
+    storage.safe_remove_path("../../etc/passwd")
