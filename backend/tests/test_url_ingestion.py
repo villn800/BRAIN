@@ -95,6 +95,64 @@ def test_twitter_ingestion_sets_item_type(monkeypatch, app_client_factory):
     assert body["status"] == models.ItemStatus.pending.value
 
 
+def test_twitter_video_ingestion_persists_extra(monkeypatch, app_client_factory):
+    client, _ = app_client_factory()
+    headers = _auth_headers(client)
+    html = (FIXTURES / "video_simple.html").read_text()
+
+    monkeypatch.setattr(
+        ingestion_service.metadata_service,
+        "fetch_html",
+        lambda url, **_: metadata_service.HtmlFetchResult(html=html),
+    )
+    monkeypatch.setattr(
+        ingestion_service,
+        "_download_primary_image",
+        lambda image_url, **_: ("uploads/images/video_poster.jpg", None),
+    )
+
+    response = client.post(
+        "/api/items/url",
+        json={"url": "https://twitter.com/user/status/555"},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["extra"]["media_kind"] == "video"
+    assert body["extra"]["video_url"].endswith(".mp4")
+    assert body["extra"]["video_type"] == "mp4"
+    assert body["file_path"] == "uploads/images/video_poster.jpg"
+    assert body["type"] == models.ItemType.tweet.value
+
+
+def test_twitter_hls_ingestion_falls_back_to_image(monkeypatch, app_client_factory):
+    client, _ = app_client_factory()
+    headers = _auth_headers(client)
+    html = (FIXTURES / "video_hls.html").read_text()
+
+    monkeypatch.setattr(
+        ingestion_service.metadata_service,
+        "fetch_html",
+        lambda url, **_: metadata_service.HtmlFetchResult(html=html),
+    )
+    monkeypatch.setattr(
+        ingestion_service,
+        "_download_primary_image",
+        lambda image_url, **_: ("uploads/images/hls_poster.jpg", None),
+    )
+
+    response = client.post(
+        "/api/items/url",
+        json={"url": "https://x.com/user/status/777"},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["extra"]["media_kind"] == "image"
+    assert body["extra"].get("video_url") is None
+    assert body["file_path"] == "uploads/images/hls_poster.jpg"
+
+
 def test_twitter_ingestion_prefers_media_over_avatar(monkeypatch, app_client_factory):
     client, _ = app_client_factory()
     headers = _auth_headers(client)
