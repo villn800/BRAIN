@@ -95,6 +95,20 @@ def test_twitter_video_detection():
     assert metadata.image_url  # poster retained
 
 
+def test_twitter_video_detection_with_query_string():
+    candidates = [
+        (
+            "https://video.twimg.com/ext_tw_video/1842312345678901234/pu/vid/720x720/abcdEFGH.mp4?tag=21",
+            None,
+        ),
+        ("https://video.twimg.com/segment_only.m3u8?tag=21", None),
+    ]
+
+    url, video_type = url_extractors._pick_best_video(candidates)
+    assert url.endswith(".mp4?tag=21")
+    assert video_type == "mp4"
+
+
 def test_twitter_hls_fallback_to_image():
     html = (FIXTURES / "video_hls.html").read_text()
     metadata = url_extractors.extract_for_domain(

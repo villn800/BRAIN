@@ -28,6 +28,7 @@ cp .env.example .env
   pip install -r requirements-headless.txt
   python -m playwright install
   ```
+- When enabled, the resolver accepts `video.twimg.com` MP4 URLs even when query params are present (e.g. `.mp4?tag=NN`) and still prefers MP4 over HLS; HLS-only tweets remain image-only for v1.
 - The backend still runs and tests pass without Playwright installed when the feature is disabled.
 
 ## Tests
