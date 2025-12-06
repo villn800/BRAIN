@@ -169,6 +169,7 @@ def test_twitter_headless_ingestion_persists_video_extra(monkeypatch, app_client
     assert body["extra"]["media_kind"] == "video"
     assert body["extra"]["video_url"].startswith("https://video.twimg.com/")
     assert ".mp4" in body["extra"]["video_url"]
+    assert body["extra"].get("twitter_hls_only") is None
     assert body["file_path"] == "uploads/images/twitter_poster.jpg"
 
 
@@ -197,6 +198,7 @@ def test_twitter_hls_ingestion_falls_back_to_image(monkeypatch, app_client_facto
     body = response.json()
     assert body["extra"]["media_kind"] == "image"
     assert body["extra"].get("video_url") is None
+    assert body["extra"].get("twitter_hls_only") is True
     assert body["file_path"] == "uploads/images/hls_poster.jpg"
 
 

@@ -91,6 +91,7 @@ def test_twitter_video_detection():
     assert metadata.extra.get("media_kind") == "video"
     assert metadata.extra.get("video_url", "").endswith(".mp4")
     assert metadata.extra.get("video_type") == "mp4"
+    assert not metadata.extra.get("twitter_hls_only")
     assert metadata.item_type == models.ItemType.tweet
     assert metadata.image_url  # poster retained
 
@@ -119,6 +120,7 @@ def test_twitter_hls_fallback_to_image():
     assert metadata is not None
     assert metadata.extra.get("media_kind") == "image"
     assert metadata.extra.get("video_url") is None
+    assert metadata.extra.get("twitter_hls_only") is True
     assert metadata.image_url and metadata.image_url.endswith("hls_poster.jpg")
 
 

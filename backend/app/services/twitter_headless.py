@@ -11,10 +11,13 @@ def resolve_twitter_video_headless(
     timeout: float = 15.0,
 ) -> dict[str, str | None] | None:
     """Best-effort headless resolver for Twitter/X videos."""
+    logger.info("twitter_headless_start url=%s timeout=%.1fs", url, timeout)
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        logger.info("Playwright not installed — skipping headless resolver.")
+        logger.info(
+            "twitter_headless_skipped url=%s reason=playwright_not_installed", url
+        )
         return None
 
     try:
@@ -45,16 +48,65 @@ def resolve_twitter_video_headless(
             page.wait_for_timeout(2000)
             browser.close()
 
+            mp4_candidates = [entry for entry in captured if entry[1] == "mp4"]
+            hls_candidates = [entry for entry in captured if entry[1] == "hls"]
             if not captured:
-                logger.info("Headless Twitter resolver found no video for %s", url)
+                logger.info(
+                    "twitter_headless outcome=no_media url=%s candidates=0 mp4=0 hls=0",
+                    url,
+                )
                 return None
 
-            preferred = next((entry for entry in captured if entry[1] == "mp4"), captured[0])
-            return {
-                "video_url": preferred[0],
-                "video_type": preferred[1],
-                "poster_url": None,
-            }
+            if mp4_candidates:
+                preferred = next(
+                    (entry for entry in captured if entry[1] == "mp4"), captured[0]
+                )
+                logger.info(
+                    "twitter_headless outcome=success url=%s candidates=%d mp4=%d hls=%d chosen_type=%s",
+                    url,
+                    len(captured),
+                    len(mp4_candidates),
+                    len(hls_candidates),
+                    preferred[1],
+                )
+                logger.debug(
+                    "twitter_headless_candidates url=%s candidates=%s",
+                    url,
+                    captured,
+                )
+                return {
+                    "video_url": preferred[0],
+                    "video_type": preferred[1],
+                    "poster_url": None,
+                }
+
+            if hls_candidates:
+                logger.info(
+                    "twitter_headless outcome=hls_only url=%s candidates=%d mp4=0 hls=%d",
+                    url,
+                    len(captured),
+                    len(hls_candidates),
+                )
+                logger.debug(
+                    "twitter_headless_candidates url=%s candidates=%s",
+                    url,
+                    captured,
+                )
+                return {
+                    "video_url": None,
+                    "video_type": None,
+                    "poster_url": None,
+                    "twitter_hls_only": True,
+                }
+
+            logger.info(
+                "twitter_headless outcome=no_media url=%s candidates=%d mp4=0 hls=0",
+                url,
+                len(captured),
+            )
+            return None
     except Exception as exc:  # pragma: no cover - defensive; exercised via tests
-        logger.warning("Headless Twitter resolver failed for %s: %s", url, exc)
+        logger.warning(
+            "twitter_headless outcome=error url=%s reason=%s", url, exc, exc_info=True
+        )
         return None
