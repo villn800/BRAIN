@@ -31,9 +31,13 @@ def resolve_twitter_video_headless(
                 lowered = response_url.lower()
                 if "video.twimg.com" not in lowered:
                     return
-                if lowered.endswith(".mp4"):
+                from urllib.parse import urlparse
+
+                parsed = urlparse(lowered)
+                path = parsed.path
+                if ".mp4" in path:
                     captured.append((response_url, "mp4"))
-                elif lowered.endswith(".m3u8"):
+                elif ".m3u8" in path:
                     captured.append((response_url, "hls"))
 
             page.on("response", handle_response)

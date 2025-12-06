@@ -53,6 +53,7 @@ Set in `.env` (see `.env.example`):
   pip install -r requirements-headless.txt
   python -m playwright install
   ```
+- With the flag on, the resolver accepts `video.twimg.com` MP4 URLs even when query params are present (e.g. `.mp4?tag=NN`) and still prefers MP4 over HLS; HLS-only tweets remain image-only for v1.
 - This feature depends on X/Twitter’s frontend; use it in line with Twitter/X ToS and local law, and expect it may break when their UI changes.
 
 ## 📂 Project Layout

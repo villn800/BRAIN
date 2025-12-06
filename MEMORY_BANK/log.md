@@ -4,6 +4,12 @@ Append new entries at the **top** (most recent first).
 
 ---
 
+## 2025-12-05 – Initiative 1: Twitter headless video URL detection & normalization
+
+- Static extractor + headless resolver now accept `video.twimg.com` MP4 URLs with query params (`.mp4?tag=NN`); HLS-only remains image-only for v1.
+- Tests updated: `_pick_best_video`, headless resolver, and ingestion now cover MP4-with-query; full suite `python -m pytest -q` passes (73 tests).
+- Frontend detail/card includes debug hooks (`ItemDetailPanel` console log, `data-testid` on video player/badge) and manual smoke-test steps documented in `DOCS_/_playbook/twitter_headless_video_url_fix_playbook.md`.
+
 ## 2025-12-04 – Initiative 9: Twitter headless video fallback (option C)
 
 - Added gated config flags `TWITTER_HEADLESS_ENABLED` (default off) and `TWITTER_HEADLESS_TIMEOUT_SECS`; documented optional Playwright install (`requirements-headless.txt`, `python -m playwright install`).

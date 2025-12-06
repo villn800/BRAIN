@@ -142,6 +142,14 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
   const isVideo = Boolean(videoUrl)
   const downloadUrl = buildAssetUrl(item?.file_path)
 
+  useEffect(() => {
+    if (item?.id) {
+      // Lightweight visibility for manual verification in DevTools.
+      // eslint-disable-next-line no-console
+      console.debug('ItemDetailPanel extra', { id: item.id, extra: item.extra })
+    }
+  }, [item?.id, item?.extra])
+
   const handleDelete = async () => {
     if (!item?.id || deleting) {
       return
@@ -226,13 +234,19 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
               ) : null}
             </div>
             {(isVideo || previewUrl) && (
-              <div className="detail-preview">
+              <div className="detail-preview" data-testid={isVideo ? 'detail-video-wrapper' : 'detail-image-wrapper'}>
                 {isVideo ? (
-                  <video controls poster={previewUrl || undefined} src={videoUrl} aria-label={item.title}>
+                  <video
+                    controls
+                    poster={previewUrl || undefined}
+                    src={videoUrl}
+                    aria-label={item.title}
+                    data-testid="detail-video-player"
+                  >
                     Your browser does not support video playback.
                   </video>
                 ) : (
-                  <img src={previewUrl} alt={item.title} />
+                  <img src={previewUrl} alt={item.title} data-testid="detail-image" />
                 )}
               </div>
             )}

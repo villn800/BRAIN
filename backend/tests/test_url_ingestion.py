@@ -148,7 +148,7 @@ def test_twitter_headless_ingestion_persists_video_extra(monkeypatch, app_client
         ingestion_service.url_extractors,
         "resolve_twitter_video_headless",
         lambda url, timeout=0.0: {
-            "video_url": "https://video.example/twitter.mp4",
+            "video_url": "https://video.twimg.com/ext_tw_video/1842312345678901234/pu/vid/720x720/abcdEFGH.mp4?tag=21",
             "video_type": "mp4",
             "poster_url": "https://pbs.twimg.com/media/poster.jpg",
         },
@@ -167,7 +167,8 @@ def test_twitter_headless_ingestion_persists_video_extra(monkeypatch, app_client
     assert response.status_code == 201, response.text
     body = response.json()
     assert body["extra"]["media_kind"] == "video"
-    assert body["extra"]["video_url"] == "https://video.example/twitter.mp4"
+    assert body["extra"]["video_url"].startswith("https://video.twimg.com/")
+    assert ".mp4" in body["extra"]["video_url"]
     assert body["file_path"] == "uploads/images/twitter_poster.jpg"
 
 

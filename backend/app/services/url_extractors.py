@@ -261,7 +261,10 @@ def _pick_best_video(candidates: List[Tuple[str, str | None]]) -> Tuple[str | No
 
     def _is_mp4(url: str, type_hint: str | None) -> bool:
         lowered = url.lower()
-        if lowered.endswith(".mp4"):
+        parsed = urlparse(lowered)
+        if parsed.scheme in ("http", "https") and parsed.path.endswith(".mp4"):
+            return True
+        if parsed.scheme in ("http", "https") and ".mp4" in parsed.path:
             return True
         if type_hint and "mp4" in type_hint.lower():
             return True

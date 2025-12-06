@@ -21,6 +21,10 @@
   - Headless resolver (`services/twitter_headless.py`) sniffs `video.twimg.com` responses via Playwright; prefers `.mp4`, falls back to `.m3u8`/hls; logs when Playwright missing or no media.
   - `_extract_twitter` calls headless path only when flag enabled, `/status/` path, and no existing video metadata; updates `metadata.extra` and optional poster.
   - Tests added: `tests/test_twitter_headless.py`, extractor flag-on/off coverage, ingestion test ensuring video extras persisted.
+- Initiative 1 (Twitter headless video URL detection & normalization) completed:
+  - Static extractor `_pick_best_video` now accepts `video.twimg.com` MP4 URLs even when query params are present (e.g. `.mp4?tag=21`); HLS-only still treated as image-only for v1.
+  - Headless resolver accepts `.mp4`/`.m3u8` paths with query params, still preferring MP4; ingestion path persists `extra.media_kind="video"` with query-bearing MP4 URLs.
+  - Frontend detail/card surfaces include lightweight debug hooks (`ItemDetailPanel` console log, `data-testid` for video player/badge) to aid manual verification.
 - Tests:
   - Backend: `cd APP_/backend && python -m pytest` → 71 passing (Playwright optional and not required with flag off).
   - Frontend: `npm run build` succeeds.

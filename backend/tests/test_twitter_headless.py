@@ -84,6 +84,19 @@ def test_resolves_mp4_when_present(monkeypatch):
     assert result.get("poster_url") is None
 
 
+def test_resolves_mp4_with_query(monkeypatch):
+    responses = [
+        "https://video.twimg.com/segment1.m3u8?tag=21",
+        "https://video.twimg.com/clip.mp4?tag=21",
+    ]
+    _install_fake_playwright(monkeypatch, responses)
+
+    result = resolve_twitter_video_headless("https://x.com/user/status/3", timeout=1.0)
+    assert result
+    assert result["video_url"].endswith("clip.mp4?tag=21")
+    assert result["video_type"] == "mp4"
+
+
 def test_returns_none_when_no_media(monkeypatch):
     responses: list[str] = [
         "https://video.twimg.com/not-video.txt",

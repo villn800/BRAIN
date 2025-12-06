@@ -44,7 +44,7 @@ export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
     <Tag className={className} aria-label={item.title} {...tagProps}>
       <div className="item-media">
         {isVideo && (
-          <span className="video-badge">
+          <span className="video-badge" data-testid="video-badge">
             <span className="video-badge-icon" aria-hidden="true" />
             Video
           </span>
