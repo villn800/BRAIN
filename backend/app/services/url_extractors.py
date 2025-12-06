@@ -40,6 +40,7 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
     metadata.title = tweet_text or author
     metadata.description = tweet_text or author
     video_candidates = _gather_twitter_videos(soup)
+    mp4_candidates, hls_candidates = _categorize_video_candidates(video_candidates)
     candidates = _gather_twitter_images(soup)
     avatar = _first_avatar(candidates)
     chosen = _pick_best_image(candidates)
@@ -56,6 +57,11 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
             metadata.extra["video_type"] = video_type
     else:
         metadata.extra["media_kind"] = "image"
+        if hls_candidates:
+            metadata.extra["twitter_hls_only"] = True
+            logger.info(
+                "Twitter extractor observed HLS-only candidates for %s", url
+            )
     if avatar:
         metadata.extra["avatar_url"] = avatar
     if chosen is None:
@@ -96,7 +102,11 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
             metadata.extra["video_type"] = result.get("video_type") or "mp4"
             if not metadata.image_url and result.get("poster_url"):
                 metadata.image_url = result["poster_url"]
+            metadata.extra.pop("twitter_hls_only", None)
             logger.info("Headless Twitter resolver attached video for %s", url)
+        elif result and result.get("twitter_hls_only"):
+            metadata.extra["twitter_hls_only"] = True
+            logger.info("Headless Twitter resolver observed HLS-only for %s", url)
         else:
             logger.info("Headless Twitter resolver found no video for %s", url)
     return metadata
@@ -259,17 +269,6 @@ def _pick_best_video(candidates: List[Tuple[str, str | None]]) -> Tuple[str | No
     if not candidates:
         return None, None
 
-    def _is_mp4(url: str, type_hint: str | None) -> bool:
-        lowered = url.lower()
-        parsed = urlparse(lowered)
-        if parsed.scheme in ("http", "https") and parsed.path.endswith(".mp4"):
-            return True
-        if parsed.scheme in ("http", "https") and ".mp4" in parsed.path:
-            return True
-        if type_hint and "mp4" in type_hint.lower():
-            return True
-        return False
-
     for url, type_hint in candidates:
         if _is_mp4(url, type_hint):
             return url, "mp4"
@@ -283,3 +282,38 @@ def _first_avatar(candidates: List[str]) -> str | None:
         if _is_avatar(url):
             return url
     return None
+
+
+def _is_mp4(url: str, type_hint: str | None) -> bool:
+    lowered = url.lower()
+    parsed = urlparse(lowered)
+    if parsed.scheme in ("http", "https") and parsed.path.endswith(".mp4"):
+        return True
+    if parsed.scheme in ("http", "https") and ".mp4" in parsed.path:
+        return True
+    if type_hint and "mp4" in type_hint.lower():
+        return True
+    return False
+
+
+def _is_hls(url: str, type_hint: str | None) -> bool:
+    lowered = url.lower()
+    parsed = urlparse(lowered)
+    if parsed.scheme in ("http", "https") and ".m3u8" in parsed.path:
+        return True
+    if type_hint and ("m3u8" in type_hint.lower() or "mpegurl" in type_hint.lower()):
+        return True
+    return False
+
+
+def _categorize_video_candidates(
+    candidates: List[Tuple[str, str | None]]
+) -> tuple[list[Tuple[str, str | None]], list[Tuple[str, str | None]]]:
+    mp4_candidates: list[Tuple[str, str | None]] = []
+    hls_candidates: list[Tuple[str, str | None]] = []
+    for url, type_hint in candidates:
+        if _is_mp4(url, type_hint):
+            mp4_candidates.append((url, type_hint))
+        elif _is_hls(url, type_hint):
+            hls_candidates.append((url, type_hint))
+    return mp4_candidates, hls_candidates

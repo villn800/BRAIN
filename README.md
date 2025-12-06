@@ -54,6 +54,8 @@ Set in `.env` (see `.env.example`):
   python -m playwright install
   ```
 - With the flag on, the resolver accepts `video.twimg.com` MP4 URLs even when query params are present (e.g. `.mp4?tag=NN`) and still prefers MP4 over HLS; HLS-only tweets remain image-only for v1.
+- HLS-only tagging: when only `.m3u8` variants are seen (static or headless) and no MP4 is selected, `extra.twitter_hls_only=true`; `media_kind` stays `image` and no `video_url` is persisted. Useful for measuring prevalence ahead of any HLS support.
+- Debugging: structured logs emit `twitter_headless_*` entries (start/outcome/candidate counts); run `python -m scripts.twitter_headless_debug 'https://x.com/.../status/...' [--timeout 15]` from `APP_/backend` for a quick CLI probe (requires Playwright install).
 - This feature depends on X/Twitter’s frontend; use it in line with Twitter/X ToS and local law, and expect it may break when their UI changes.
 
 ## 📂 Project Layout

@@ -106,3 +106,16 @@ def test_returns_none_when_no_media(monkeypatch):
 
     result = resolve_twitter_video_headless("https://x.com/user/status/2", timeout=1.0)
     assert result is None
+
+
+def test_reports_hls_only_when_no_mp4(monkeypatch):
+    responses: list[str] = [
+        "https://video.twimg.com/segment1.m3u8",
+        "https://video.twimg.com/segment2.m3u8?tag=12",
+    ]
+    _install_fake_playwright(monkeypatch, responses)
+
+    result = resolve_twitter_video_headless("https://x.com/user/status/4", timeout=1.0)
+    assert result is not None
+    assert result.get("video_url") is None
+    assert result.get("twitter_hls_only") is True

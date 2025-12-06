@@ -31,6 +31,11 @@ cp .env.example .env
 - When enabled, the resolver accepts `video.twimg.com` MP4 URLs even when query params are present (e.g. `.mp4?tag=NN`) and still prefers MP4 over HLS; HLS-only tweets remain image-only for v1.
 - The backend still runs and tests pass without Playwright installed when the feature is disabled.
 
+## Twitter headless debug tools
+- Structured logs: search for `twitter_headless` messages showing start → candidates → outcome (includes counts and chosen type; debug logs list captured URLs).
+- CLI: `python -m scripts.twitter_headless_debug 'https://x.com/.../status/...' [--timeout 15] [--log-level DEBUG]` (requires optional Playwright install). Exit code `0` on success, `1` on no video/timeout.
+- HLS-only tagging: when only `.m3u8` variants are seen and no MP4 is selected, `extra["twitter_hls_only"]=True` (still `media_kind="image"` and no `video_url` in v1). Logged as `outcome=hls_only` for headless or `observed HLS-only` for static extractor.
+
 ## Tests
 
 Run the backend unit tests (uses pytest + FastAPI TestClient):

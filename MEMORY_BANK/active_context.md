@@ -25,6 +25,13 @@
   - Static extractor `_pick_best_video` now accepts `video.twimg.com` MP4 URLs even when query params are present (e.g. `.mp4?tag=21`); HLS-only still treated as image-only for v1.
   - Headless resolver accepts `.mp4`/`.m3u8` paths with query params, still preferring MP4; ingestion path persists `extra.media_kind="video"` with query-bearing MP4 URLs.
   - Frontend detail/card surfaces include lightweight debug hooks (`ItemDetailPanel` console log, `data-testid` for video player/badge) to aid manual verification.
+- Initiative 2 (Twitter headless HLS-only handling) completed for tagging:
+  - HLS-only detection: if `.m3u8` seen (static meta or headless) and no MP4 selected, set `extra.twitter_hls_only=true`; keep `media_kind="image"` and no `video_url` persisted.
+  - Headless logs `outcome=hls_only`; static extractor logs “observed HLS-only”; headless MP4 success clears the flag.
+- Initiative 3 (Twitter headless observability) in progress:
+  - Structured logging emits `twitter_headless_start` and `outcome=...` with candidate counts; debug log lists captured URLs.
+  - CLI probe: `python -m scripts.twitter_headless_debug '<tweet_url>' [--timeout 15] [--log-level DEBUG]` (requires Playwright install); exit 0 on success, 1 on no video.
+  - No debug HTTP endpoint added (no existing pattern); rely on CLI + logs.
 - Tests:
   - Backend: `cd APP_/backend && python -m pytest` → 71 passing (Playwright optional and not required with flag off).
   - Frontend: `npm run build` succeeds.

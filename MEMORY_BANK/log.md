@@ -4,6 +4,18 @@ Append new entries at the **top** (most recent first).
 
 ---
 
+## 2025-12-06 – Initiative 2: Twitter headless HLS-only tagging (detection only)
+
+- Added metadata flag `twitter_hls_only=true` when `.m3u8` is observed (static meta or headless) and no MP4 is selected; `media_kind` stays `image`, `video_url` unset. Headless logs `outcome=hls_only`; static extractor logs “observed HLS-only”.
+- Tests extended: extractor HLS fixture asserts flag, headless HLS-only responses return the flag, ingestion persists it; MP4 ingestion asserts flag absent. Commands: `python -m pytest tests/test_url_extractors.py tests/test_twitter_headless.py tests/test_url_ingestion.py -q` and full `python -m pytest -q` (74 passed, passlib warning only).
+- Docs updated (README + backend README) to describe `twitter_hls_only` meaning and that playback remains unchanged for v1.
+
+## 2025-12-06 – Initiative 3: Twitter headless observability & debug tools
+
+- Added structured logging to `app/services/twitter_headless.py` (start/outcome/candidate counts, debug candidate list, error stack) to make headless runs explainable from logs alone.
+- Introduced CLI probe `python -m scripts.twitter_headless_debug '<tweet_url>' [--timeout 15] [--log-level DEBUG]` for quick, out-of-band checks (returns exit 0 on success, 1 otherwise).
+- No HTTP debug endpoint added (no existing pattern); relying on CLI + logs. Full backend pytest still required as gate.
+
 ## 2025-12-05 – Initiative 1: Twitter headless video URL detection & normalization
 
 - Static extractor + headless resolver now accept `video.twimg.com` MP4 URLs with query params (`.mp4?tag=NN`); HLS-only remains image-only for v1.
