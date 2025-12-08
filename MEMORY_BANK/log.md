@@ -4,6 +4,12 @@ Append new entries at the **top** (most recent first).
 
 ---
 
+## 2025-12-06 – Initiative 4: Twitter video UX & docs refinement
+
+- Frontend states clarified: inline MP4 keeps “Video” badge/player; HLS-only/non-playable tweets show image with “Video on X” badge and “Play on X” link/callout; text/image-only still expose an “Open on X” path. Backend logic unchanged.
+- Docs updated (APP_/README.md, APP_/backend/README.md) to describe UX states, HLS-only flag meaning, and escape hatches.
+- Build check: `cd APP_/frontend && npm run build` (vite) succeeded; backend pytest remains green from prior runs (no backend changes).
+
 ## 2025-12-06 – Initiative 2: Twitter headless HLS-only tagging (detection only)
 
 - Added metadata flag `twitter_hls_only=true` when `.m3u8` is observed (static meta or headless) and no MP4 is selected; `media_kind` stays `image`, `video_url` unset. Headless logs `outcome=hls_only`; static extractor logs “observed HLS-only”.

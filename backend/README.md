@@ -35,6 +35,7 @@ cp .env.example .env
 - Structured logs: search for `twitter_headless` messages showing start → candidates → outcome (includes counts and chosen type; debug logs list captured URLs).
 - CLI: `python -m scripts.twitter_headless_debug 'https://x.com/.../status/...' [--timeout 15] [--log-level DEBUG]` (requires optional Playwright install). Exit code `0` on success, `1` on no video/timeout.
 - HLS-only tagging: when only `.m3u8` variants are seen and no MP4 is selected, `extra["twitter_hls_only"]=True` (still `media_kind="image"` and no `video_url` in v1). Logged as `outcome=hls_only` for headless or `observed HLS-only` for static extractor.
+- UX expectations: inline video appears only for MP4; HLS-only/non-playable tweets render as image with a “Video on X” badge in the grid and “Play on X” link in detail; backend behaviour is unchanged.
 
 ## Tests
 
