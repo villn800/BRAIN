@@ -58,6 +58,11 @@ Set in `.env` (see `.env.example`):
 - Debugging: structured logs emit `twitter_headless_*` entries (start/outcome/candidate counts); run `python -m scripts.twitter_headless_debug 'https://x.com/.../status/...' [--timeout 15]` from `APP_/backend` for a quick CLI probe (requires Playwright install).
 - This feature depends on X/Twitter’s frontend; use it in line with Twitter/X ToS and local law, and expect it may break when their UI changes.
 
+### Twitter media UX states (v1)
+- Inline video: shows a `<video>` player + “Video” badge when `extra.video_url` is present (`media_kind="video"`).
+- HLS-only or other non-playable tweets: render image-only; badge reads “Video on X”; detail panel offers “Play on X” link and notes that inline playback isn’t supported yet.
+- Image/text-only tweets: render image/text without video badge; detail panel still offers “Open on X” when applicable.
+
 ## 📂 Project Layout
 ```
 APP_/

@@ -32,6 +32,9 @@
   - Structured logging emits `twitter_headless_start` and `outcome=...` with candidate counts; debug log lists captured URLs.
   - CLI probe: `python -m scripts.twitter_headless_debug '<tweet_url>' [--timeout 15] [--log-level DEBUG]` (requires Playwright install); exit 0 on success, 1 on no video.
   - No debug HTTP endpoint added (no existing pattern); rely on CLI + logs.
+- Initiative 4 (Twitter video UX & docs refinement) completed:
+  - UI states: inline MP4 shows “Video” badge and player; HLS-only/non-playable shows image with “Video on X” badge and “Play on X” link; image/text-only still show “Open on X” where relevant.
+  - Backend unchanged; `twitter_hls_only` remains metadata-only flag for prevalence tracking.
 - Tests:
   - Backend: `cd APP_/backend && python -m pytest` → 71 passing (Playwright optional and not required with flag off).
   - Frontend: `npm run build` succeeds.

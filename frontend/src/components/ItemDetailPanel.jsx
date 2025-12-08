@@ -140,6 +140,12 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
   const previewUrl = buildAssetUrl(item?.thumbnail_path || item?.file_path)
   const videoUrl = item?.extra?.video_url
   const isVideo = Boolean(videoUrl)
+  const isHlsOnly = Boolean(item?.extra?.twitter_hls_only) && !isVideo
+  const isTwitter =
+    (item?.origin_domain || '').includes('twitter.com') ||
+    (item?.origin_domain || '').includes('x.com') ||
+    (item?.source_url || '').includes('twitter.com') ||
+    (item?.source_url || '').includes('x.com')
   const downloadUrl = buildAssetUrl(item?.file_path)
 
   useEffect(() => {
@@ -192,8 +198,14 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
           </div>
           <div className="detail-panel-actions">
             {item?.source_url && (
-              <a className="ghost" href={item.source_url} target="_blank" rel="noreferrer">
-                Open source ↗
+              <a
+                className="ghost"
+                href={item.source_url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={isTwitter ? 'Open this tweet on X in a new tab' : 'Open source link in a new tab'}
+              >
+                {isTwitter ? 'Open on X ↗' : 'Open source ↗'}
               </a>
             )}
             {item?.id && (
@@ -248,6 +260,27 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
                 ) : (
                   <img src={previewUrl} alt={item.title} data-testid="detail-image" />
                 )}
+              </div>
+            )}
+            {!isVideo && isTwitter && item?.source_url && (
+              <div className="detail-callout">
+                <div className="muted small">
+                  {isHlsOnly
+                    ? "This tweet is HLS-only; inline playback isn't supported yet."
+                    : "This tweet isn't playable inline here."}
+                </div>
+                <div className="callout-actions">
+                  <a
+                    className="ghost"
+                    href={item?.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-testid="open-on-x"
+                    aria-label="Open this tweet on X in a new tab"
+                  >
+                    Play on X ↗
+                  </a>
+                </div>
               </div>
             )}
 
