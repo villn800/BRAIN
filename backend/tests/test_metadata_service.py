@@ -46,3 +46,18 @@ def test_fetch_metadata_sets_error_on_exception():
         http_get=_raiser,
     )
     assert metadata.error is not None
+
+
+def test_fetch_html_follows_redirects():
+    calls = {}
+
+    def _spy(url, **kwargs):
+        calls["url"] = url
+        calls["follow_redirects"] = kwargs.get("follow_redirects")
+        return _StubResponse(text="<html><title>OK</title></html>", status_code=200)
+
+    result = metadata_service.fetch_html("https://example.com/redirect", http_get=_spy)
+
+    assert result.html.startswith("<html>")
+    # The metadata fetcher should follow redirects so providers like Pinterest return real pages.
+    assert calls["follow_redirects"] is True

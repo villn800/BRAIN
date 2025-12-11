@@ -55,7 +55,8 @@ def fetch_html(
     domain = urlparse(url).netloc.lower()
     is_pinterest = "pinterest.com" in domain
     try:
-        response = getter(url, timeout=timeout, headers=merged_headers)
+        # Always follow redirects so we can see the final page metadata (Pinterest pins often 301).
+        response = getter(url, timeout=timeout, headers=merged_headers, follow_redirects=True)
     except httpx.HTTPError as exc:  # pragma: no cover - network errors handled in tests
         response_obj = getattr(exc, "response", None)
         status_code = getattr(response_obj, "status_code", None)
