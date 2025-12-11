@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from urllib.parse import urlparse
 from typing import Iterable, List, Tuple
 
+import httpx
 from bs4 import BeautifulSoup
 
 from .. import models
@@ -109,7 +111,135 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
             logger.info("Headless Twitter resolver observed HLS-only for %s", url)
         else:
             logger.info("Headless Twitter resolver found no video for %s", url)
+
+    # Fallback when X removed OG/Twitter meta tags: try public oEmbed to recover text/author/image.
+    if not metadata.title and not metadata.description and not metadata.image_url:
+        fallback = _twitter_oembed_fallback(url)
+        if fallback:
+            metadata.title = fallback.get("text") or metadata.title
+            metadata.description = fallback.get("text") or metadata.description
+            metadata.image_url = fallback.get("image_url") or metadata.image_url
+            if fallback.get("author"):
+                metadata.extra["author"] = fallback["author"]
+            if fallback.get("timestamp"):
+                metadata.extra["timestamp"] = fallback["timestamp"]
+            if metadata.extra.get("media_kind") is None:
+                metadata.extra["media_kind"] = "image"
     return metadata
+
+
+def _twitter_oembed_fallback(url: str) -> dict[str, str | None] | None:
+    """Best-effort metadata recovery for X/Twitter when OG meta tags are absent."""
+    tweet_id = _parse_tweet_id(url)
+    vx_data = _twitter_vx_lookup(tweet_id) if tweet_id else None
+    vx_text = vx_data.get("text") if vx_data else None
+    vx_image = vx_data.get("image_url") if vx_data else None
+    vx_author = vx_data.get("author") if vx_data else None
+    vx_timestamp = vx_data.get("timestamp") if vx_data else None
+
+    try:
+        resp = httpx.get(
+            "https://publish.twitter.com/oembed",
+            params={"url": url},
+            timeout=6.0,
+            follow_redirects=True,
+        )
+        if resp.status_code >= 400:
+            return None
+        payload = resp.json()
+    except Exception:  # pragma: no cover - defensive
+        payload = {}
+
+    html = payload.get("html") or ""
+    soup = BeautifulSoup(html, "html.parser")
+    text_node = soup.find("p")
+    text = vx_text or (text_node.get_text(" ", strip=True) if text_node else None)
+    image_url = vx_image or _resolve_tco_image(soup)
+    if vx_author:
+        payload.setdefault("author_name", vx_author)
+    if vx_timestamp:
+        payload.setdefault("timestamp", vx_timestamp)
+    timestamp = None
+    # The last <a> in the embed usually contains the timestamp label.
+    links = soup.find_all("a")
+    if links:
+        timestamp = links[-1].get_text(" ", strip=True) or None
+
+    return {
+        "text": text,
+        "author": payload.get("author_name"),
+        "image_url": image_url,
+        "timestamp": timestamp,
+    }
+
+
+def _parse_tweet_id(url: str) -> str | None:
+    parsed = urlparse(url)
+    match = re.search(r"/status/(\d+)", parsed.path)
+    return match.group(1) if match else None
+
+
+def _twitter_vx_lookup(tweet_id: str) -> dict[str, str | None] | None:
+    """Use the public vxtwitter API as a resilience fallback to grab media/text."""
+    try:
+        resp = httpx.get(f"https://api.vxtwitter.com/status/{tweet_id}", timeout=6.0)
+        if resp.status_code >= 400:
+            return None
+        data = resp.json()
+    except Exception:  # pragma: no cover - defensive
+        return None
+
+    text = data.get("text")
+    author = data.get("user_name") or data.get("user_screen_name")
+    timestamp = data.get("date")
+    image_url = None
+    media = data.get("media_extended") or []
+    if media:
+        first = media[0] or {}
+        image_url = first.get("url") or first.get("thumbnail_url")
+
+    return {
+        "text": text,
+        "author": author,
+        "timestamp": timestamp,
+        "image_url": image_url,
+    }
+
+
+def _resolve_tco_image(soup: BeautifulSoup) -> str | None:
+    """Follow pic.twitter.com/t.co links from the embed to the underlying media URL."""
+    target = None
+    for anchor in soup.find_all("a"):
+        href = anchor.get("href")
+        if href and ("pic.twitter.com" in href or "t.co/" in href):
+            target = href
+            break
+    if not target:
+        return None
+
+    try:
+        response = httpx.get(target, timeout=6.0, follow_redirects=True)
+    except Exception:  # pragma: no cover - defensive
+        return None
+
+    final_url = str(response.url)
+    content_type = response.headers.get("content-type", "")
+    if final_url and content_type.startswith("image/"):
+        return final_url
+
+    # If we landed on a Twitter photo page, try to scrape its og:image.
+    if final_url and "twitter.com" in final_url and "/photo/" in final_url:
+        try:
+            html = response.text
+            from . import metadata_service  # local import to avoid cycle
+            parsed = metadata_service.parse_generic_metadata(final_url, html)
+            if parsed.image_url:
+                return parsed.image_url
+        except Exception:  # pragma: no cover - defensive
+            return final_url or None
+
+    return final_url or None
+    return None
 
 
 def _extract_pinterest(url: str, html: str | None) -> MetadataResult | None:

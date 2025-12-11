@@ -204,6 +204,33 @@ def test_twitter_hls_ingestion_falls_back_to_image(monkeypatch, app_client_facto
     assert body["file_path"] == "uploads/images/hls_poster.jpg"
 
 
+def test_twitter_fallback_uses_oembed_when_no_meta(monkeypatch):
+    from app.services import url_extractors
+
+    def _fake_oembed(url):
+        return {
+            "text": "hello world pic",
+            "author": "tester",
+            "image_url": "https://pbs.twimg.com/media/test.jpg",
+            "timestamp": "December 10, 2025",
+        }
+
+    monkeypatch.setattr(url_extractors, "_twitter_oembed_fallback", _fake_oembed)
+
+    metadata = url_extractors.extract_for_domain(
+        "x.com",
+        "https://x.com/user/status/1998869099192135753",
+        "<html></html>",
+    )
+
+    assert metadata.item_type == models.ItemType.tweet
+    assert metadata.title == "hello world pic"
+    assert metadata.description == "hello world pic"
+    assert metadata.image_url == "https://pbs.twimg.com/media/test.jpg"
+    assert metadata.extra["author"] == "tester"
+    assert metadata.extra["timestamp"] == "December 10, 2025"
+
+
 def test_twitter_ingestion_prefers_media_over_avatar(monkeypatch, app_client_factory):
     client, _ = app_client_factory()
     headers = _auth_headers(client)
