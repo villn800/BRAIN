@@ -41,6 +41,11 @@
 - Deployment:
   - Docker Compose stack present but may still need real‑world testing on Unraid or similar.
   - `.env.example` documents environment and ports.
+- Pinterest pin metadata resilience (Dec 2025):
+  - Pinterest extractor now considers `twitter:*` fallbacks plus `og:image:src`, promotes generic metadata to pins when available, and flags gate pages via `extra["pinterest_gate"]`.
+  - Pinterest fetch logging added in `metadata_service.fetch_html` (status/content length/prefix) and fixtures captured under `tests/fixtures/pinterest/` (real pin, gate page, generic meta).
+  - Debug helper `python -m scripts.pinterest_debug '<pin_url>'` prints fetch status/classification/title/image without DB writes; headers updated to browser-like UA for fetches.
+  - Backend tests current: `cd APP_/backend && python -m pytest -q` → 79 passing (passlib crypt deprecation warning only).
 
 ## Log Pointer
 

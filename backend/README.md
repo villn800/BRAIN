@@ -37,6 +37,12 @@ cp .env.example .env
 - HLS-only tagging: when only `.m3u8` variants are seen and no MP4 is selected, `extra["twitter_hls_only"]=True` (still `media_kind="image"` and no `video_url` in v1). Logged as `outcome=hls_only` for headless or `observed HLS-only` for static extractor.
 - UX expectations: inline video appears only for MP4; HLS-only/non-playable tweets render as image with a “Video on X” badge in the grid and “Play on X” link in detail; backend behaviour is unchanged.
 
+## Pinterest support & debug
+- Pinterest URLs use a domain-specific extractor that looks for `og`/`twitter` meta tags (title/description/image) and classifies items as `pin` even when metadata is partial.
+- When Pinterest returns a consent/login/bot gate page without tags, the fetcher logs `pinterest_fetch ...` with status/length/prefix and marks the response with `extra["pinterest_gate"]=True`; those ingest as plain URLs.
+- Generic metadata is promoted to a pin when available for Pinterest pages; otherwise the title may fall back to the normalized URL.
+- Debug helper: `python -m scripts.pinterest_debug '<pin_url>' [--timeout 8] [--log-level DEBUG]` prints status, classification, and any title/image detected (no DB writes).
+
 ## Tests
 
 Run the backend unit tests (uses pytest + FastAPI TestClient):

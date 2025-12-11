@@ -63,6 +63,11 @@ Set in `.env` (see `.env.example`):
 - HLS-only or other non-playable tweets: render image-only; badge reads “Video on X”; detail panel offers “Play on X” link and notes that inline playback isn’t supported yet.
 - Image/text-only tweets: render image/text without video badge; detail panel still offers “Open on X” when applicable.
 
+## 📌 Pinterest support
+- `pinterest.com` URLs are treated as pins when at least one of `og`/`twitter` meta fields (title/description/image) is present; partial meta still counts as a pin.
+- If Pinterest serves a consent/login/bot gate without meta tags, ingestion logs a `pinterest_fetch` line and marks the response as a gate; those degrade to URL items and may show a bare title/URL.
+- Debugging: run `python -m scripts.pinterest_debug '<pin_url>'` from `APP_/backend` to print status, classification (pin/gate/url), and any title/image detected.
+
 ## 📂 Project Layout
 ```
 APP_/

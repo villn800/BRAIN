@@ -5,7 +5,9 @@ from pathlib import Path
 from app import models
 from app.services import url_extractors
 
-FIXTURES = Path(__file__).parent / "fixtures" / "twitter"
+FIXTURES = Path(__file__).parent / "fixtures"
+TWITTER_FIXTURES = FIXTURES / "twitter"
+PINTEREST_FIXTURES = FIXTURES / "pinterest"
 
 
 def test_twitter_extractor_returns_metadata():
@@ -32,7 +34,7 @@ def test_twitter_extractor_returns_metadata():
 
 
 def test_twitter_extractor_prefers_media_over_avatar_with_json_ld():
-    html = (FIXTURES / "quote_tweet_with_media_juniorkingpp.html").read_text()
+    html = (TWITTER_FIXTURES / "quote_tweet_with_media_juniorkingpp.html").read_text()
     metadata = url_extractors.extract_for_domain(
         "x.com",
         "https://x.com/juniorkingpp/status/1996087779269464125",
@@ -46,7 +48,7 @@ def test_twitter_extractor_prefers_media_over_avatar_with_json_ld():
 
 
 def test_twitter_extractor_handles_card_image_meta():
-    html = (FIXTURES / "quote_tweet_or_card_girlflours.html").read_text()
+    html = (TWITTER_FIXTURES / "quote_tweet_or_card_girlflours.html").read_text()
     metadata = url_extractors.extract_for_domain(
         "twitter.com",
         "https://twitter.com/girlflours/status/1996331045344735356",
@@ -58,7 +60,7 @@ def test_twitter_extractor_handles_card_image_meta():
 
 
 def test_twitter_extractor_simple_image_tweet():
-    html = (FIXTURES / "simple_image_tweet.html").read_text()
+    html = (TWITTER_FIXTURES / "simple_image_tweet.html").read_text()
     metadata = url_extractors.extract_for_domain(
         "twitter.com",
         "https://twitter.com/Interior/status/463440424141459456",
@@ -69,7 +71,7 @@ def test_twitter_extractor_simple_image_tweet():
 
 
 def test_twitter_extractor_text_only_falls_back_to_avatar():
-    html = (FIXTURES / "text_only_tweet.html").read_text()
+    html = (TWITTER_FIXTURES / "text_only_tweet.html").read_text()
     metadata = url_extractors.extract_for_domain(
         "x.com",
         "https://x.com/jack/status/20",
@@ -81,7 +83,7 @@ def test_twitter_extractor_text_only_falls_back_to_avatar():
 
 
 def test_twitter_video_detection():
-    html = (FIXTURES / "video_simple.html").read_text()
+    html = (TWITTER_FIXTURES / "video_simple.html").read_text()
     metadata = url_extractors.extract_for_domain(
         "twitter.com",
         "https://twitter.com/user/status/555",
@@ -111,7 +113,7 @@ def test_twitter_video_detection_with_query_string():
 
 
 def test_twitter_hls_fallback_to_image():
-    html = (FIXTURES / "video_hls.html").read_text()
+    html = (TWITTER_FIXTURES / "video_hls.html").read_text()
     metadata = url_extractors.extract_for_domain(
         "x.com",
         "https://x.com/user/status/777",
@@ -206,6 +208,47 @@ def test_pinterest_extractor_handles_basic_meta():
     assert metadata is not None
     assert metadata.item_type == models.ItemType.pin
     assert metadata.title == "Pin Title"
+
+
+def test_pinterest_real_pin_uses_og_or_twitter_meta():
+    html = (PINTEREST_FIXTURES / "real_pin.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "pinterest.com",
+        "https://www.pinterest.com/pin/10062799163935716/",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.item_type == models.ItemType.pin
+    assert metadata.title
+    assert metadata.description
+    assert metadata.image_url and metadata.image_url.startswith("https://i.pinimg.com/")
+
+
+def test_pinterest_gate_page_detected_and_flagged():
+    html = (PINTEREST_FIXTURES / "gate_page.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "pinterest.com",
+        "https://www.pinterest.com/pin/gate/",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.item_type == models.ItemType.url
+    assert metadata.extra.get("pinterest_gate") is True
+    assert metadata.title == "Pinterest"
+    assert metadata.image_url is None
+
+
+def test_pinterest_falls_back_to_pin_when_generic_meta_exists():
+    html = (PINTEREST_FIXTURES / "generic_meta.html").read_text()
+    metadata = url_extractors.extract_for_domain(
+        "pinterest.com",
+        "https://www.pinterest.com/pin/board/",
+        html,
+    )
+    assert metadata is not None
+    assert metadata.item_type == models.ItemType.pin
+    assert metadata.title == "Pinterest Ideas Board"
+    assert metadata.image_url.endswith("pinterest-board.jpg")
 
 
 def test_extractor_returns_none_for_unmatched_domain():
