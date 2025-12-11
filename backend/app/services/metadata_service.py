@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Callable
 
 import httpx
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
 from .. import models
 
 DEFAULT_HEADERS = {
-    "User-Agent": "BRAIN-IngestionBot/1.0 (+https://brain.local)"
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 "
+        "BRAIN-MetadataFetcher/1.0"
+    )
 }
 DEFAULT_TIMEOUT = 8.0
+logger = logging.getLogger(__name__)
 
 HttpGetter = Callable[..., httpx.Response]
 
@@ -45,18 +52,47 @@ def fetch_html(
 ) -> HtmlFetchResult:
     getter = http_get or httpx.get
     merged_headers = {**DEFAULT_HEADERS, **(headers or {})}
+    domain = urlparse(url).netloc.lower()
+    is_pinterest = "pinterest.com" in domain
     try:
         response = getter(url, timeout=timeout, headers=merged_headers)
     except httpx.HTTPError as exc:  # pragma: no cover - network errors handled in tests
         response_obj = getattr(exc, "response", None)
         status_code = getattr(response_obj, "status_code", None)
+        if is_pinterest:
+            logger.info(
+                "pinterest_fetch url=%s status=%s error=%s",
+                url,
+                status_code,
+                str(exc),
+            )
         return HtmlFetchResult(html=None, error=str(exc), status_code=status_code)
 
     status = getattr(response, "status_code", None)
     if status is not None and status >= 400:
+        text = getattr(response, "text", "") or ""
+        if is_pinterest:
+            logger.info(
+                "pinterest_fetch url=%s status=%s content_length=%s prefix=%s",
+                url,
+                status,
+                len(text),
+                " ".join(text[:200].split()),
+            )
         return HtmlFetchResult(html=None, error=f"HTTP {status}", status_code=status)
 
     text = getattr(response, "text", None)
+    if is_pinterest:
+        preview = ""
+        if text:
+            preview = " ".join(text[:200].split())
+        logger.info(
+            "pinterest_fetch url=%s status=%s content_length=%s prefix=%s",
+            url,
+            status,
+            len(text or ""),
+            preview,
+        )
     return HtmlFetchResult(html=text or "", status_code=status)
 
 

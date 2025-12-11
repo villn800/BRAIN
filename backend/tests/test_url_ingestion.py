@@ -13,7 +13,9 @@ BOOTSTRAP = {
     "username": "ingester",
     "password": "SecurePass123!",
 }
-FIXTURES = Path(__file__).parent / "fixtures" / "twitter"
+FIXTURES = Path(__file__).parent / "fixtures"
+TWITTER_FIXTURES = FIXTURES / "twitter"
+PINTEREST_FIXTURES = FIXTURES / "pinterest"
 
 
 def _auth_headers(client):
@@ -98,7 +100,7 @@ def test_twitter_ingestion_sets_item_type(monkeypatch, app_client_factory):
 def test_twitter_video_ingestion_persists_extra(monkeypatch, app_client_factory):
     client, _ = app_client_factory()
     headers = _auth_headers(client)
-    html = (FIXTURES / "video_simple.html").read_text()
+    html = (TWITTER_FIXTURES / "video_simple.html").read_text()
 
     monkeypatch.setattr(
         ingestion_service.metadata_service,
@@ -176,7 +178,7 @@ def test_twitter_headless_ingestion_persists_video_extra(monkeypatch, app_client
 def test_twitter_hls_ingestion_falls_back_to_image(monkeypatch, app_client_factory):
     client, _ = app_client_factory()
     headers = _auth_headers(client)
-    html = (FIXTURES / "video_hls.html").read_text()
+    html = (TWITTER_FIXTURES / "video_hls.html").read_text()
 
     monkeypatch.setattr(
         ingestion_service.metadata_service,
@@ -205,7 +207,7 @@ def test_twitter_hls_ingestion_falls_back_to_image(monkeypatch, app_client_facto
 def test_twitter_ingestion_prefers_media_over_avatar(monkeypatch, app_client_factory):
     client, _ = app_client_factory()
     headers = _auth_headers(client)
-    html = (FIXTURES / "quote_tweet_with_media_juniorkingpp.html").read_text()
+    html = (TWITTER_FIXTURES / "quote_tweet_with_media_juniorkingpp.html").read_text()
 
     monkeypatch.setattr(
         ingestion_service.metadata_service,
@@ -238,7 +240,7 @@ def test_twitter_ingestion_prefers_media_over_avatar(monkeypatch, app_client_fac
 def test_twitter_ingestion_uses_card_image(monkeypatch, app_client_factory):
     client, _ = app_client_factory()
     headers = _auth_headers(client)
-    html = (FIXTURES / "quote_tweet_or_card_girlflours.html").read_text()
+    html = (TWITTER_FIXTURES / "quote_tweet_or_card_girlflours.html").read_text()
 
     monkeypatch.setattr(
         ingestion_service.metadata_service,
@@ -266,6 +268,67 @@ def test_twitter_ingestion_uses_card_image(monkeypatch, app_client_factory):
     assert captured["url"].startswith("https://pbs.twimg.com/media/")
     body = response.json()
     assert body["file_path"] == "uploads/images/card.jpg"
+
+
+def test_pinterest_ingestion_with_generic_meta_sets_pin(monkeypatch, app_client_factory):
+    client, _ = app_client_factory()
+    headers = _auth_headers(client)
+    html = (PINTEREST_FIXTURES / "generic_meta.html").read_text()
+
+    monkeypatch.setattr(
+        ingestion_service.metadata_service,
+        "fetch_html",
+        lambda url, **_: metadata_service.HtmlFetchResult(html=html),
+    )
+    monkeypatch.setattr(
+        ingestion_service,
+        "_download_primary_image",
+        lambda image_url, **_: ("uploads/images/pin.jpg", None),
+    )
+
+    response = client.post(
+        "/api/items/url",
+        json={"url": "https://www.pinterest.com/pin/board123"},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["type"] == models.ItemType.pin.value
+    assert body["title"] == "Pinterest Ideas Board"
+    assert body["file_path"] == "uploads/images/pin.jpg"
+
+
+def test_pinterest_gate_ingestion_flags_gate(monkeypatch, app_client_factory):
+    client, _ = app_client_factory()
+    headers = _auth_headers(client)
+    html = (PINTEREST_FIXTURES / "gate_page.html").read_text()
+
+    monkeypatch.setattr(
+        ingestion_service.metadata_service,
+        "fetch_html",
+        lambda url, **_: metadata_service.HtmlFetchResult(html=html),
+    )
+    # ensure we do not attempt image download
+    def _fail_download(*_args, **_kwargs):
+        raise AssertionError("should not download image")
+
+    monkeypatch.setattr(
+        ingestion_service,
+        "_download_primary_image",
+        _fail_download,
+    )
+
+    response = client.post(
+        "/api/items/url",
+        json={"url": "https://www.pinterest.com/pin/blocked"},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["type"] == models.ItemType.url.value
+    assert body["title"] == "Pinterest"
+    assert body["extra"]["pinterest_gate"] is True
+    assert body["file_path"] is None
 
 
 def test_ingestion_handles_fetch_failure(monkeypatch, app_client_factory):

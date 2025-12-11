@@ -4,6 +4,11 @@ Append new entries at the **top** (most recent first).
 
 ---
 
+## 2025-12-08 – Pinterest pin metadata resilience
+
+- Hardened Pinterest extractor with twitter/og fallbacks, generic metadata promotion to pins, gate-page flagging (`extra.pinterest_gate`), and browser-like fetch headers; added logging for Pinterest fetches (status/length/prefix).
+- Captured fixtures for real pins, gate pages, and generic metadata; added debug helper `python -m scripts.pinterest_debug '<pin_url>'` plus README docs. Backend tests: `cd APP_/backend && python -m pytest -q` (79 passing; passlib crypt warning).
+
 ## 2025-12-06 – Initiative 4: Twitter video UX & docs refinement
 
 - Frontend states clarified: inline MP4 keeps “Video” badge/player; HLS-only/non-playable tweets show image with “Video on X” badge and “Play on X” link/callout; text/image-only still expose an “Open on X” path. Backend logic unchanged.

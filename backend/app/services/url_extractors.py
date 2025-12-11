@@ -116,19 +116,49 @@ def _extract_pinterest(url: str, html: str | None) -> MetadataResult | None:
     if not html:
         return None
     soup = BeautifulSoup(html, "html.parser")
-    title = _get_meta(soup, "og:title")
-    description = _get_meta(soup, "og:description")
-    image = _get_meta(soup, "og:image")
+    gate = _looks_like_pinterest_gate(soup)
+    title = _get_meta(soup, "og:title") or _get_meta(soup, "twitter:title")
+    description = _get_meta(soup, "og:description") or _get_meta(soup, "twitter:description")
+    image = (
+        _get_meta(soup, "og:image")
+        or _get_meta(soup, "og:image:src")
+        or _get_meta(soup, "twitter:image")
+    )
 
-    if not any([title, description, image]):
-        return None
+    if any([title, description, image]):
+        metadata = MetadataResult(url=url)
+        metadata.item_type = models.ItemType.pin
+        metadata.title = title
+        metadata.description = description
+        metadata.image_url = image
+        try:
+            from . import metadata_service  # local import to avoid cycle
+        except Exception:  # pragma: no cover - defensive
+            metadata_service = None
+        if metadata_service and (metadata.title is None or metadata.description is None):
+            generic = metadata_service.parse_generic_metadata(url, html)
+            metadata.title = metadata.title or generic.title
+            metadata.description = metadata.description or generic.description
+            metadata.image_url = metadata.image_url or generic.image_url
+        if gate:
+            metadata.extra["pinterest_gate"] = True
+        return metadata
 
-    metadata = MetadataResult(url=url)
-    metadata.item_type = models.ItemType.pin
-    metadata.title = title
-    metadata.description = description
-    metadata.image_url = image
-    return metadata
+    try:
+        from . import metadata_service  # local import to avoid cycle
+    except Exception:  # pragma: no cover - defensive
+        metadata_service = None
+
+    if metadata_service:
+        generic = metadata_service.parse_generic_metadata(url, html)
+        if gate:
+            generic.extra["pinterest_gate"] = True
+            return generic
+        if any([generic.title, generic.description, generic.image_url]):
+            generic.item_type = models.ItemType.pin
+            return generic
+
+    return None
 
 
 def _get_meta(soup: BeautifulSoup, name: str) -> str | None:
@@ -139,6 +169,21 @@ def _get_meta(soup: BeautifulSoup, name: str) -> str | None:
     if tag and tag.get("content"):
         return tag["content"].strip()
     return None
+
+
+def _looks_like_pinterest_gate(soup: BeautifulSoup) -> bool:
+    text = soup.get_text(" ", strip=True).lower()
+    if not text:
+        return False
+    signals = (
+        "log in to see",
+        "sign up to continue",
+        "consent",
+        "login to see more",
+        "sign up to see more",
+        "pinterest helps you find ideas to try",
+    )
+    return any(signal in text for signal in signals)
 
 
 def _gather_twitter_images(soup: BeautifulSoup) -> List[str]:
