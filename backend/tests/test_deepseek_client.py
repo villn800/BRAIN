@@ -80,3 +80,39 @@ def test_generate_tags_handles_bad_json(monkeypatch, caplog):
     assert result.tags == []
     assert "Tagging unavailable" in result.summary
     assert "not valid JSON" in caplog.text
+
+
+def test_generate_tags_handles_json_code_fence(monkeypatch):
+    _setup_env(monkeypatch)
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        fenced_content = """```json
+{"tags":["design"],"summary":"A design tweet.","category":"design"}
+```"""
+        payload = {"choices": [{"message": {"content": fenced_content}}]}
+        return _DummyResponse(_payload=payload)
+
+    monkeypatch.setattr(deepseek_client.httpx, "post", _fake_post)
+
+    result = deepseek_client.generate_tags_for_text("Example tweet text", max_tags=4)
+
+    assert result.tags == ["design"]
+    assert result.summary == "A design tweet."
+    assert result.category == "design"
+
+
+def test_generate_tags_handles_non_json_text(monkeypatch, caplog):
+    _setup_env(monkeypatch)
+
+    def _fake_post(url, headers=None, json=None, timeout=None):
+        payload = {"choices": [{"message": {"content": "I cannot tag this."}}]}
+        return _DummyResponse(_payload=payload)
+
+    monkeypatch.setattr(deepseek_client.httpx, "post", _fake_post)
+
+    result = deepseek_client.generate_tags_for_text("Example tweet text")
+
+    assert result.tags == []
+    assert result.summary == "Tagging unavailable."
+    assert result.category is None
+    assert "not valid JSON" in caplog.text or "could not be parsed as JSON" in caplog.text
