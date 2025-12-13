@@ -4,6 +4,7 @@ import ItemGrid from '../components/ItemGrid'
 import ItemDetailPanel from '../components/ItemDetailPanel'
 import SettingsModal from '../components/SettingsModal'
 import SaveLinkForm from '../components/SaveLinkForm'
+import XImportForm from '../components/XImportForm'
 import SearchFilters from '../components/SearchFilters'
 import UploadForm from '../components/UploadForm'
 import { api } from '../lib/api'
@@ -168,6 +169,7 @@ export default function ItemsPage() {
                 availableTags={tags}
               />
               <SaveLinkForm onItemCreated={handleItemCreated} />
+              <XImportForm onItemCreated={handleItemCreated} />
               <UploadForm onItemCreated={handleItemCreated} />
             </div>
             <button type="button" className="ghost rail-close" onClick={() => setToolsOpen(false)}>

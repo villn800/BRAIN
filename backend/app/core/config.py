@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     APP_VERSION: str = Field(default="dev")
     TWITTER_HEADLESS_ENABLED: bool = Field(default=False)
     TWITTER_HEADLESS_TIMEOUT_SECS: float = Field(default=15.0, ge=1.0)
+    DEEPSEEK_API_KEY: str | None = Field(default=None, description="API key for DeepSeek tagging.")
+    DEEPSEEK_API_BASE_URL: str = Field(default="https://api.deepseek.com")
+    DEEPSEEK_MODEL: str = Field(default="deepseek-chat")
 
     @field_validator("API_V1_PREFIX")
     @classmethod
