@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import List
 
@@ -22,6 +23,37 @@ class DeepSeekTagResult:
 _FALLBACK_RESULT = DeepSeekTagResult(tags=[], summary="Tagging unavailable.", category=None)
 
 
+def _parse_deepseek_payload(raw: str) -> dict | None:
+    cleaned = raw.strip()
+    if not cleaned:
+        logger.warning("DeepSeek response contained empty content.")
+        return None
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if not match:
+            preview = cleaned[:200].replace("\n", " ")
+            logger.warning(
+                "DeepSeek response was not valid JSON; no JSON object found. content preview: %s",
+                preview,
+            )
+            return None
+
+        snippet = match.group(0)
+        try:
+            return json.loads(snippet)
+        except json.JSONDecodeError as exc:
+            preview = cleaned[:200].replace("\n", " ")
+            logger.warning(
+                "DeepSeek response was not valid JSON: %s | content preview: %s",
+                exc,
+                preview,
+            )
+            return None
+
+
 def _dedupe_tags(tags: list[str], max_tags: int) -> list[str]:
     seen: set[str] = set()
     cleaned: list[str] = []
@@ -39,26 +71,16 @@ def _dedupe_tags(tags: list[str], max_tags: int) -> list[str]:
     return cleaned
 
 
-def _parse_response(content: str, max_tags: int) -> DeepSeekTagResult:
-    try:
-        payload = json.loads(content)
-    except json.JSONDecodeError as exc:
-        logger.warning("DeepSeek response was not valid JSON: %s", exc)
-        return _FALLBACK_RESULT
-
-    tags = _dedupe_tags(payload.get("tags") or [], max_tags)
-    summary = payload.get("summary") or "No summary provided."
-    category = payload.get("category") or None
-    return DeepSeekTagResult(tags=tags, summary=summary, category=category)
-
-
 def _build_prompt(text: str, max_tags: int) -> list[dict[str, str]]:
     system_message = (
-        "You are a tagging assistant for an inspiration vault. "
-        "Given tweet content, return STRICT JSON with 3-7 concise, user-visible tags, a short one-line summary (<=30 words), "
-        "and an optional coarse category. "
-        "Do not include any prose outside the JSON. "
-        "Schema: {\"tags\": [\"tag1\", \"tag2\"], \"summary\": \"...\", \"category\": \"optional\"}. "
+        "You are a tagging engine for short texts (tweets). "
+        "You MUST respond with only a single JSON object, no markdown, no prose, no code fences. "
+        'The JSON keys must be exactly: "tags", "summary", "category". '
+        '"tags" must be an array of 3-7 short lowercase strings like "poster design", "productivity". '
+        '"summary" must be a single sentence (max ~30 words). '
+        '"category" must be a short string or null, e.g. "design", "fitness", or null. '
+        'If you cannot tag the text, still respond with: {"tags": [], "summary": "Tagging unavailable.", "category": null}. '
+        "Do NOT include any explanation, prefix, suffix, markdown, or backticks. "
         f"Limit tags to at most {max_tags}."
     )
     user_message = f"Tweet text:\n{text.strip()}"
@@ -88,7 +110,7 @@ def generate_tags_for_text(text: str, *, max_tags: int = 6) -> DeepSeekTagResult
     }
 
     try:
-        response = httpx.post(endpoint, headers=headers, json=payload, timeout=20)
+        response = httpx.post(endpoint, headers=headers, json=payload, timeout=90)
         response.raise_for_status()
     except httpx.HTTPError as exc:
         logger.warning("DeepSeek request failed: %s", exc)
@@ -110,8 +132,16 @@ def generate_tags_for_text(text: str, *, max_tags: int = 6) -> DeepSeekTagResult
         logger.warning("DeepSeek response missing expected structure: %s", exc)
         return _FALLBACK_RESULT
 
-    if not isinstance(content, str) or not content.strip():
-        logger.warning("DeepSeek response contained empty content.")
+    if not isinstance(content, str):
+        logger.warning("DeepSeek response contained non-string content.")
         return _FALLBACK_RESULT
 
-    return _parse_response(content, max_tags)
+    payload = _parse_deepseek_payload(content)
+    if payload is None:
+        logger.warning("DeepSeek response could not be parsed as JSON.")
+        return _FALLBACK_RESULT
+
+    tags = _dedupe_tags(payload.get("tags") or [], max_tags)
+    summary = payload.get("summary") or "No summary provided."
+    category = payload.get("category") or None
+    return DeepSeekTagResult(tags=tags, summary=summary, category=category)

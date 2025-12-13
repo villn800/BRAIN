@@ -6,10 +6,11 @@ import logging
 import sys
 from pathlib import Path
 from typing import Iterable
+from contextlib import nullcontext
 
 from app import models, schemas
 from app.core.config import get_settings, reset_settings
-from app.core.logging import configure_logging
+from app.core.logging import UtcFormatter, configure_logging
 from app.core import urls
 from app.database import Base, SessionLocal, configure_engine
 from app.services import ingestion_service, items_service
@@ -20,6 +21,10 @@ logger = logging.getLogger(__name__)
 
 def _default_path() -> Path:
     return Path(__file__).resolve().parents[2] / "SCRIPTS_" / "liked_tweets.json"
+
+
+def _default_log_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "deepseek_results.log"
 
 
 def _load_tweets(path: Path) -> list[dict]:
@@ -85,6 +90,7 @@ def process_tweets(
     user_email: str,
     limit: int | None = None,
     dry_run: bool = False,
+    log_path: Path | None = None,
 ) -> int:
     settings = get_settings()
     engine = configure_engine(settings.DATABASE_URL)
@@ -93,7 +99,8 @@ def process_tweets(
     processed = created = updated = failures = 0
     sample_output: list[str] = []
 
-    with SessionLocal() as db:
+    log_cm = log_path.open("a", encoding="utf-8") if log_path else nullcontext(None)
+    with SessionLocal() as db, log_cm as log_file:
         user = _get_user(db, user_email)
 
         for raw in tweets:
@@ -113,8 +120,11 @@ def process_tweets(
                 logger.warning("Skipping tweet due to error: %s", exc)
                 continue
 
+            line = _report_line(normalized, tag_result)
+            if log_file:
+                log_file.write(line + "\n")
+
             if dry_run:
-                line = _report_line(normalized, tag_result)
                 sample_output.append(line)
                 print(line)
                 continue
@@ -140,13 +150,23 @@ def process_tweets(
                     logger.warning("Failed to ingest %s: %s", normalized, exc)
                     continue
 
-    logger.info(
+    summary_line = (
         "import_liked_tweets_complete processed=%s created=%s updated=%s failures=%s",
         processed,
         created,
         updated,
-        failures,
     )
+    logger.info(*summary_line)
+    if log_path:
+        summary_text = (
+            f"Processed {processed} tweets (created={created}, updated={updated}, failures={failures})"
+        )
+        summary_block = ["", summary_text]
+        for line in sample_output[:3]:
+            summary_block.append(f"Example: {line}")
+        with log_path.open("a", encoding="utf-8") as log_file:
+            log_file.write("\n".join(summary_block) + "\n")
+
     print(
         f"Processed {processed} tweets (created={created}, updated={updated}, failures={failures})"
     )
@@ -184,6 +204,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Only print tagging output without writing to the database.",
     )
     parser.add_argument(
+        "--log",
+        nargs="?",
+        const=str(_default_log_path()),
+        help="Write tagging output to a log file (default: deepseek_results.log in APP_). "
+        "Provide a custom path to override.",
+    )
+    parser.add_argument(
         "--log-level",
         default="INFO",
         help="Log level (default: INFO).",
@@ -196,6 +223,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     configure_logging(args.log_level)
+    log_path = Path(args.log) if args.log else None
+    if log_path:
+        file_handler = logging.FileHandler(log_path, encoding="utf-8")
+        file_handler.setFormatter(
+            UtcFormatter("%(asctime)sZ | %(levelname)s | %(name)s | %(message)s")
+        )
+        file_handler.setLevel(args.log_level.upper())
+        logging.getLogger().addHandler(file_handler)
     reset_settings()  # ensure fresh settings if env changed
 
     tweets = _load_tweets(Path(args.path))
@@ -204,6 +239,7 @@ def main(argv: list[str] | None = None) -> int:
         user_email=args.user_email,
         limit=args.limit,
         dry_run=args.dry_run,
+        log_path=log_path,
     )
 
 
