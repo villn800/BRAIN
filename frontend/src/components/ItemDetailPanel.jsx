@@ -262,13 +262,9 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
                 )}
               </div>
             )}
-            {!isVideo && isTwitter && item?.source_url && (
+            {isTwitter && isHlsOnly && item?.source_url && (
               <div className="detail-callout">
-                <div className="muted small">
-                  {isHlsOnly
-                    ? "This tweet is HLS-only; inline playback isn't supported yet."
-                    : "This tweet isn't playable inline here."}
-                </div>
+                <div className="muted small">This tweet is HLS-only; inline playback isn't supported yet.</div>
                 <div className="callout-actions">
                   <a
                     className="ghost"

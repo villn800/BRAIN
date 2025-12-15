@@ -45,6 +45,7 @@ def test_twitter_extractor_prefers_media_over_avatar_with_json_ld():
     assert "/media/" in metadata.image_url
     assert metadata.extra.get("avatar_url")
     assert "/profile_images/" in metadata.extra["avatar_url"]
+    assert metadata.extra.get("primary_image_is_avatar") is False
 
 
 def test_twitter_extractor_handles_card_image_meta():
@@ -80,6 +81,7 @@ def test_twitter_extractor_text_only_falls_back_to_avatar():
     assert metadata is not None
     assert metadata.image_url and "/profile_images/" in metadata.image_url
     assert metadata.extra.get("avatar_url") == metadata.image_url
+    assert metadata.extra.get("primary_image_is_avatar") is True
 
 
 def test_twitter_video_detection():

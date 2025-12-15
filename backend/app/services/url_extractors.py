@@ -51,6 +51,7 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
         "author": author,
         "timestamp": timestamp,
     }
+    metadata.extra["primary_image_is_avatar"] = bool(avatar and chosen and avatar == chosen)
     video_url, video_type = _pick_best_video(video_candidates)
     if video_url:
         metadata.extra["media_kind"] = "video"
