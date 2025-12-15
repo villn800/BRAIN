@@ -45,7 +45,9 @@ export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
   const tweetAuthor = item?.extra?.twitter_author || tweetHandle || 'Tweet'
   const tweetText = item?.title || item?.description || 'View on X'
   const tweetDate = formatDate(item?.created_at)
-  const tweetBackgroundStyle = hasPreview ? { backgroundImage: `url(${imageUrl})` } : undefined
+  const isAvatarPreview = Boolean(tweetAvatar && imageUrl && tweetAvatar === imageUrl)
+  const showTweetMedia = hasPreview && !isAvatarPreview
+  const tweetMediaUrl = showTweetMedia ? imageUrl : null
   const overlayMeta = [
     item.origin_domain || item.type,
     item.tags?.[0]?.name || formatDate(item.created_at),
@@ -92,11 +94,7 @@ export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
             </div>
           )
         ) : showTweetCard ? (
-          <div
-            className={`tweet-fallback ${hasPreview ? 'with-bg' : ''}`}
-            aria-label="Tweet preview"
-            style={tweetBackgroundStyle}
-          >
+          <div className="tweet-fallback" aria-label="Tweet preview">
             <div className="tweet-fallback-top">
               <span className="tweet-pill">tweet</span>
               <span className="tweet-source chip">X.com</span>
@@ -115,8 +113,13 @@ export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
             <p className="tweet-text" title={tweetText}>
               {tweetText}
             </p>
+            {tweetMediaUrl ? (
+              <div className="tweet-media-thumb">
+                <img src={tweetMediaUrl} alt={tweetText} loading="lazy" />
+              </div>
+            ) : null}
             <div className="tweet-meta">
-              {tweetDate ? <span>{tweetDate}</span> : null}
+              {tweetDate ? <span className="tweet-date">{tweetDate}</span> : null}
               <span className="tweet-open">Open on X ↗</span>
             </div>
           </div>
