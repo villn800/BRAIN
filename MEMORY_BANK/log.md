@@ -4,6 +4,12 @@ Append new entries at the **top** (most recent first).
 
 ---
 
+## 2025-12-14 – Frontend Twitter dark theme + theme toggle
+
+- Added `themeStyle` (editorial|twitter) setting defaulting to twitter dark; Settings modal now has a Theme selector and intensity labels switch to Dim/Lights out when twitter is chosen.
+- Applied `theme-${themeStyle}` across shell/board; introduced semantic surface + tweet tokens and Twitter Dim/Lights Out palettes; tweet cards now dark/contrast-safe while editorial look is preserved via defaults.
+- Build check: `cd APP_/frontend && npm ci && npm run build` (vite success); dev server not run here.
+
 ## 2025-12-08 – Pinterest pin metadata resilience
 
 - Hardened Pinterest extractor with twitter/og fallbacks, generic metadata promotion to pins, gate-page flagging (`extra.pinterest_gate`), and browser-like fetch headers; added logging for Pinterest fetches (status/length/prefix).

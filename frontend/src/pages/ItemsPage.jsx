@@ -136,7 +136,7 @@ export default function ItemsPage() {
 
   const pageClassNames = [
     'board-page',
-    'theme-editorial',
+    `theme-${settings.themeStyle}`,
     `density-${settings.gridDensity}`,
     `thumb-${settings.thumbSize}`,
     `theme-${settings.themeIntensity}`,

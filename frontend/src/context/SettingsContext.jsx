@@ -5,6 +5,7 @@ const ALLOWED_VALUES = {
   gridDensity: ['compact', 'cozy', 'airy'],
   thumbSize: ['small', 'medium', 'large'],
   overlayMode: ['hover', 'always'],
+  themeStyle: ['editorial', 'twitter'],
   themeIntensity: ['soft', 'bold'],
   motion: ['standard', 'reduced'],
 }
@@ -13,6 +14,7 @@ const BASE_DEFAULTS = {
   gridDensity: 'cozy',
   thumbSize: 'medium',
   overlayMode: 'hover',
+  themeStyle: 'twitter',
   themeIntensity: 'soft',
   motion: 'standard',
 }

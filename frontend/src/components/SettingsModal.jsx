@@ -5,6 +5,16 @@ import { useEffect, useRef } from 'react'
 export default function SettingsModal({ open, onClose }) {
   const { settings, setSetting, resetSettings } = useSettings()
   const dialogRef = useRef(null)
+  const themeIntensityOptions =
+    settings.themeStyle === 'twitter'
+      ? [
+          { value: 'soft', label: 'Dim', hint: 'Twitter dim dark' },
+          { value: 'bold', label: 'Lights out', hint: 'Pure black background' },
+        ]
+      : [
+          { value: 'soft', label: 'Soft', hint: 'Light gradient, airy cards, gentle borders' },
+          { value: 'bold', label: 'Bold', hint: 'Richer gradient, stronger contrast & accent' },
+        ]
 
   useEffect(() => {
     if (!open) {
@@ -152,12 +162,31 @@ export default function SettingsModal({ open, onClose }) {
           </fieldset>
 
           <fieldset className="settings-group">
-            <legend>Theme intensity</legend>
+            <legend>Theme</legend>
             <div className="settings-options">
               {[
-                { value: 'soft', label: 'Soft', hint: 'Light gradient, airy cards, gentle borders' },
-                { value: 'bold', label: 'Bold', hint: 'Richer gradient, stronger contrast & accent' },
+                { value: 'editorial', label: 'Editorial', hint: 'Warm editorial surfaces' },
+                { value: 'twitter', label: 'Twitter', hint: 'Twitter/X dark mode palette' },
               ].map((entry) => (
+                <label key={entry.value} className="option-tile">
+                  <input
+                    type="radio"
+                    name="themeStyle"
+                    value={entry.value}
+                    checked={settings.themeStyle === entry.value}
+                    onChange={(event) => setSetting('themeStyle', event.target.value)}
+                  />
+                  <span className="option-title">{entry.label}</span>
+                  <span className="option-hint">{entry.hint}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="settings-group">
+            <legend>Theme intensity</legend>
+            <div className="settings-options">
+              {themeIntensityOptions.map((entry) => (
                 <label key={entry.value} className="option-tile">
                   <input
                     type="radio"

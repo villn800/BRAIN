@@ -20,7 +20,7 @@ function AppLayout() {
   const { settings } = useSettings()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
-  const themeClass = `theme-editorial theme-${settings.themeIntensity} motion-${settings.motion}`
+  const themeClass = `theme-${settings.themeStyle} theme-${settings.themeIntensity} motion-${settings.motion}`
 
   useEffect(() => {
     setNavOpen(false)

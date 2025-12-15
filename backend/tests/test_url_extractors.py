@@ -128,6 +128,36 @@ def test_twitter_hls_fallback_to_image():
     assert metadata.image_url and metadata.image_url.endswith("hls_poster.jpg")
 
 
+def test_twitter_fallback_adds_image_when_missing(monkeypatch):
+    html = """
+    <html>
+      <head>
+        <meta property='og:description' content='Seasons change and so should you'>
+      </head>
+    </html>
+    """
+
+    def _fake_oembed(url):
+        return {
+          "text": "Seasons change and so should you",
+          "author": "elysianhopes",
+          "image_url": "https://pbs.twimg.com/media/qrt.jpg",
+          "timestamp": "Dec 13, 2025",
+        }
+
+    monkeypatch.setattr(url_extractors, "_twitter_oembed_fallback", _fake_oembed)
+
+    metadata = url_extractors.extract_for_domain(
+        "x.com",
+        "https://x.com/user/status/1989712843256549601",
+        html,
+    )
+
+    assert metadata.image_url == "https://pbs.twimg.com/media/qrt.jpg"
+    assert metadata.title == "Seasons change and so should you"
+    assert metadata.extra.get("author") == "elysianhopes"
+
+
 def test_twitter_headless_runs_when_flag_enabled(monkeypatch):
     html = """
     <html>
@@ -194,6 +224,34 @@ def test_twitter_headless_skipped_when_flag_disabled(monkeypatch):
     )
     assert metadata.extra.get("video_url") is None
     assert metadata.extra.get("media_kind") == "image"
+
+
+def test_twitter_vx_lookup_uses_quoted_media(monkeypatch):
+    sample = {
+        "text": "Quote tweet with photos",
+        "media_extended": [],
+        "qrt": {
+            "text": "same place six months apart",
+            "media_extended": [
+                {
+                    "url": "https://pbs.twimg.com/media/qrt-image.jpg",
+                    "thumbnail_url": "https://pbs.twimg.com/media/qrt-thumb.jpg",
+                }
+            ],
+        },
+    }
+
+    class FakeResp:
+        status_code = 200
+        def json(self):
+            return sample
+
+    monkeypatch.setattr(url_extractors.httpx, "get", lambda *args, **kwargs: FakeResp())
+
+    data = url_extractors._twitter_vx_lookup("1989712843256549601")
+    assert data is not None
+    assert data["image_url"] == "https://pbs.twimg.com/media/qrt-image.jpg"
+    assert data["text"] == "Quote tweet with photos"
 
 
 def test_pinterest_extractor_handles_basic_meta():

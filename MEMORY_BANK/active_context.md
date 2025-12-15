@@ -18,6 +18,10 @@
   - Headless resolver (`services/twitter_headless.py`) sniffs `video.twimg.com` responses via Playwright; prefers `.mp4`, falls back to `.m3u8`/hls; logs when Playwright missing or no media.
   - `_extract_twitter` calls headless path only when flag enabled, `/status/` path, and no existing video metadata; updates `metadata.extra` and optional poster.
   - Tests added: `tests/test_twitter_headless.py`, extractor flag-on/off coverage, ingestion test ensuring video extras persisted.
+- Twitter dark theme shipped (frontend):
+  - New `themeStyle` setting (editorial|twitter, default twitter) with Settings modal Theme selector; twitter intensity labels become Dim/Lights out.
+  - Applied `theme-${themeStyle}` classes app-wide; added semantic surface/tweet tokens and Twitter Dim/Lights Out palettes so header/rails/cards/tweet previews go dark while editorial stays unchanged.
+  - Build validated: `cd APP_/frontend && npm ci && npm run build` (vite success); dev server not run in this session.
 - Initiative 3 (Twitter headless observability) completed:
   - Structured logging emits `twitter_headless_start` and `outcome=...` with candidate counts; debug log lists captured URLs.
   - CLI probe: `python -m scripts.twitter_headless_debug '<tweet_url>' [--timeout 15] [--log-level DEBUG]` (requires Playwright install); exit 0 on success, 1 on no video.

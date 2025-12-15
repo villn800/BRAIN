@@ -113,16 +113,16 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
         else:
             logger.info("Headless Twitter resolver found no video for %s", url)
 
-    # Fallback when X removed OG/Twitter meta tags: try public oEmbed to recover text/author/image.
-    if not metadata.title and not metadata.description and not metadata.image_url:
+    # Fallback when X removed OG/Twitter meta tags or when we didn't get an image.
+    if (not metadata.title and not metadata.description) or not metadata.image_url:
         fallback = _twitter_oembed_fallback(url)
         if fallback:
-            metadata.title = fallback.get("text") or metadata.title
-            metadata.description = fallback.get("text") or metadata.description
-            metadata.image_url = fallback.get("image_url") or metadata.image_url
-            if fallback.get("author"):
+            metadata.title = metadata.title or fallback.get("text")
+            metadata.description = metadata.description or fallback.get("text")
+            metadata.image_url = metadata.image_url or fallback.get("image_url")
+            if fallback.get("author") and not metadata.extra.get("author"):
                 metadata.extra["author"] = fallback["author"]
-            if fallback.get("timestamp"):
+            if fallback.get("timestamp") and not metadata.extra.get("timestamp"):
                 metadata.extra["timestamp"] = fallback["timestamp"]
             if metadata.extra.get("media_kind") is None:
                 metadata.extra["media_kind"] = "image"
@@ -195,8 +195,10 @@ def _twitter_vx_lookup(tweet_id: str) -> dict[str, str | None] | None:
     timestamp = data.get("date")
     image_url = None
     media = data.get("media_extended") or []
-    if media:
-        first = media[0] or {}
+    qrt_media = (data.get("qrt") or {}).get("media_extended") or []
+    chosen_media = media or qrt_media
+    if chosen_media:
+        first = chosen_media[0] or {}
         image_url = first.get("url") or first.get("thumbnail_url")
 
     return {
