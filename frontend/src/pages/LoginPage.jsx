@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login, authLoading, authError, isAuthenticated } = useAuth()
+  const { login, authLoading, authError, isAuthenticated, authNotice, clearAuthNotice } = useAuth()
   const [formData, setFormData] = useState({ identifier: '', password: '' })
   const [formError, setFormError] = useState(null)
 
@@ -46,6 +46,14 @@ export default function LoginPage() {
           </div>
           <p className="muted">Sign in with your bootstrap admin credentials.</p>
         </div>
+        {authNotice && (
+          <div className="error-banner">
+            <span>{authNotice}</span>
+            <button type="button" className="ghost" onClick={clearAuthNotice}>
+              Dismiss
+            </button>
+          </div>
+        )}
         <label className="field">
           <span>Username or Email</span>
           <input

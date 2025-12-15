@@ -71,6 +71,9 @@ export default function ItemsPage() {
         if (exc.name === 'AbortError') {
           return
         }
+        if (exc?.status === 401) {
+          return
+        }
         setError(exc.message || 'Failed to load items')
       })
       .finally(() => {
@@ -104,6 +107,9 @@ export default function ItemsPage() {
       setItems((prev) => [...prev, ...data])
       setHasMore(data.length === PAGE_SIZE)
     } catch (exc) {
+      if (exc?.status === 401) {
+        return
+      }
       setError(exc.message || 'Failed to load more items')
     } finally {
       setLoadMoreLoading(false)

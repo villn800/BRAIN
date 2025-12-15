@@ -1,4 +1,4 @@
-import { loadStoredToken } from './session'
+import { clearToken, loadStoredToken } from './session'
 
 const DEFAULT_BASE_URL = '/api'
 const API_BASE_URL = normalizeBase(import.meta.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL)
@@ -97,6 +97,12 @@ export async function request(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && !skipAuth && token) {
+      clearToken()
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('brain:auth:unauthorized'))
+      }
+    }
     const message = isJson
       ? payload?.detail || 'Request failed'
       : typeof payload === 'string' && payload

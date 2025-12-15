@@ -62,6 +62,9 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
         if (!active) {
           return
         }
+        if (exc?.status === 401) {
+          return
+        }
         setError(exc.message || 'Unable to load item')
       })
       .finally(() => {
@@ -173,6 +176,9 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
       onDeleted?.(item.id)
       onClose?.()
     } catch (exc) {
+      if (exc?.status === 401) {
+        return
+      }
       setDeleteError(exc.message || 'Delete failed')
     } finally {
       setDeleting(false)

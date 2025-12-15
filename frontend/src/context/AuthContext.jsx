@@ -9,9 +9,21 @@ export function AuthProvider({ children }) {
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState(null)
   const [isReady, setIsReady] = useState(false)
+  const [authNotice, setAuthNotice] = useState(null)
 
   useEffect(() => {
     setIsReady(true)
+  }, [])
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setToken(null)
+      setAuthError(null)
+      setAuthNotice('Session expired. Please log in again.')
+    }
+
+    window.addEventListener('brain:auth:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('brain:auth:unauthorized', handleUnauthorized)
   }, [])
 
   useEffect(() => {
@@ -27,6 +39,8 @@ export function AuthProvider({ children }) {
     setAuthError(null)
     try {
       const response = await api.login({ identifier, password })
+      persistToken(response.access_token)
+      setAuthNotice(null)
       setToken(response.access_token)
       return response
     } catch (error) {
@@ -40,6 +54,11 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     setToken(null)
     setAuthError(null)
+    setAuthNotice(null)
+  }, [])
+
+  const clearAuthNotice = useCallback(() => {
+    setAuthNotice(null)
   }, [])
 
   const value = useMemo(
@@ -49,10 +68,12 @@ export function AuthProvider({ children }) {
       isReady,
       authLoading,
       authError,
+      authNotice,
       login,
       logout,
+      clearAuthNotice,
     }),
-    [token, isReady, authLoading, authError, login, logout]
+    [token, isReady, authLoading, authError, authNotice, login, logout, clearAuthNotice]
   )
 
   if (!isReady) {
