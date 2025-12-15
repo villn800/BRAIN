@@ -143,6 +143,39 @@ def get_item(
     return item
 
 
+@router.post("/{item_id}/refresh", response_model=schemas.ItemOut)
+def refresh_item(
+    item_id: UUID,
+    force_download: bool = Query(False, description="Force re-download of media even if already present"),
+    update_text: bool = Query(False, description="Overwrite title/description/text_content using refreshed metadata"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    item = items_service.get_item(db, current_user, item_id)
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    try:
+        refreshed = ingestion_service.refresh_url_item(
+            db,
+            current_user,
+            item,
+            force_download=force_download,
+            update_text=update_text,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    logger.info(
+        "Item refreshed",
+        extra={
+            "user_id": str(current_user.id),
+            "item_id": str(item.id),
+            "force_download": force_download,
+            "update_text": update_text,
+        },
+    )
+    return refreshed
+
+
 @router.post("/", response_model=schemas.ItemOut, status_code=status.HTTP_201_CREATED)
 def create_item(
     payload: schemas.ItemCreate,

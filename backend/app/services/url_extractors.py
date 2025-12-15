@@ -114,12 +114,13 @@ def _extract_twitter(url: str, html: str | None) -> MetadataResult | None:
             logger.info("Headless Twitter resolver found no video for %s", url)
 
     # Fallback when X removed OG/Twitter meta tags or when we didn't get an image.
-    if (not metadata.title and not metadata.description) or not metadata.image_url:
+    if (not metadata.title and not metadata.description) or not _looks_like_image_url(metadata.image_url):
         fallback = _twitter_oembed_fallback(url)
         if fallback:
             metadata.title = metadata.title or fallback.get("text")
             metadata.description = metadata.description or fallback.get("text")
-            metadata.image_url = metadata.image_url or fallback.get("image_url")
+            if not _looks_like_image_url(metadata.image_url):
+                metadata.image_url = fallback.get("image_url") or metadata.image_url
             if fallback.get("author") and not metadata.extra.get("author"):
                 metadata.extra["author"] = fallback["author"]
             if fallback.get("timestamp") and not metadata.extra.get("timestamp"):
@@ -243,6 +244,17 @@ def _resolve_tco_image(soup: BeautifulSoup) -> str | None:
 
     return final_url or None
     return None
+
+
+def _looks_like_image_url(url: str | None) -> bool:
+    if not url:
+        return False
+    lower = url.lower()
+    if "pbs.twimg.com" in lower:
+        return True
+    if any(lower.endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif")):
+        return True
+    return False
 
 
 def _extract_pinterest(url: str, html: str | None) -> MetadataResult | None:

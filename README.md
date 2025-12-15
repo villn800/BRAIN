@@ -22,7 +22,8 @@ Prereqs: Node 20.19+ (or 22.12+), Python 3.12+, Docker/Compose (optional).
 ```bash
 cd APP_/frontend
 npm install
-npm run dev  # VITE_API_BASE_URL defaults to /api
+# Set VITE_API_BASE_URL to your backend's address (default 8000)
+VITE_API_BASE_URL=http://localhost:8000/api npm run dev
 ```
 
 Backend (one terminal):
@@ -67,6 +68,16 @@ Set in `.env` (see `.env.example`):
 - `pinterest.com` URLs are treated as pins when at least one of `og`/`twitter` meta fields (title/description/image) is present; partial meta still counts as a pin.
 - If Pinterest serves a consent/login/bot gate without meta tags, ingestion logs a `pinterest_fetch` line and marks the response as a gate; those degrade to URL items and may show a bare title/URL.
 - Debugging: run `python -m scripts.pinterest_debug '<pin_url>'` from `APP_/backend` to print status, classification (pin/gate/url), and any title/image detected.
+
+## 🤖 AI Tagging & Import
+- **DeepSeek Integration:** The system supports automatic tagging and summarization using the DeepSeek API.
+- **Bulk Import:** A CLI tool is available to import a history of liked tweets.
+  ```bash
+  cd APP_/backend
+  # Ensure DEEPSEEK_API_KEY is set in .env
+  python -m scripts.import_liked_tweets_deepseek <path_to_tweets.json>
+  ```
+- **Configuration:** Add `DEEPSEEK_API_KEY` to your `.env` file to enable these features.
 
 ## 📂 Project Layout
 ```
