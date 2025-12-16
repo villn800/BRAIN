@@ -59,3 +59,9 @@ dist-ssr/
 storage/*
 !storage/.gitkeep
 deploy/.env
+
+# local data
+APP_/deepseek_results.log
+APP_/backend/*.db
+APP_/backend/*.db-*
+APP_/run_logs/
