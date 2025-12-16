@@ -65,3 +65,11 @@ APP_/deepseek_results.log
 APP_/backend/*.db
 APP_/backend/*.db-*
 APP_/run_logs/
+
+# local data
+deepseek_results.log
+APP_/deepseek_results.log
+run_logs/
+APP_/run_logs/
+*.db
+*.db-*
