@@ -18,8 +18,10 @@ function formatDate(value) {
 }
 
 export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
-  const imageUrl = buildAssetUrl(item.thumbnail_path || item.file_path)
   const isVideo = item?.extra?.media_kind === 'video' || Boolean(item?.extra?.video_url)
+  // Avoid using mp4 paths as <img> sources; prefer thumbnail only for videos.
+  const previewPath = isVideo ? item?.thumbnail_path : item?.thumbnail_path || item?.file_path
+  const imageUrl = buildAssetUrl(previewPath)
   const isHlsOnly = Boolean(item?.extra?.twitter_hls_only) && !isVideo
   const isTwitter =
     (item?.origin_domain || '').includes('twitter.com') ||
