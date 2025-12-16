@@ -140,10 +140,15 @@ def create_item(
     db: Session,
     user: models.User,
     payload: schemas.ItemCreate,
+    *,
+    created_at: datetime | None = None,
 ) -> models.Item:
     data = payload.model_dump(exclude_none=True)
     _apply_common_normalization(data)
     item = models.Item(user_id=user.id, **data)
+    if created_at:
+        item.created_at = created_at
+        item.updated_at = created_at
     db.add(item)
     db.commit()
     db.refresh(item)

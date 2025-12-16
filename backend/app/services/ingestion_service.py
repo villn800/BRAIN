@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..core import storage, urls
 from . import items_service, metadata_service, url_extractors
+from .time_utils import parse_metadata_timestamp, parse_twitter_timestamp_from_url
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,10 @@ def ingest_url(
             if status == models.ItemStatus.ok:
                 status = models.ItemStatus.pending
 
+    created_at = parse_metadata_timestamp((metadata.extra or {}).get("timestamp"))
+    if not created_at and metadata.item_type == models.ItemType.tweet:
+        created_at = parse_twitter_timestamp_from_url(normalized.url)
+
     item_payload = schemas.ItemCreate(
         title=final_title,
         description=metadata.description,
@@ -71,7 +76,7 @@ def ingest_url(
         extra=metadata.extra or None,
     )
 
-    item = items_service.create_item(db, user, item_payload)
+    item = items_service.create_item(db, user, item_payload, created_at=created_at)
 
     if payload.tags:
         items_service.set_item_tags(db, user, item, payload.tags)
