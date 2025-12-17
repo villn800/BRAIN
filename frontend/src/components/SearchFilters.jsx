@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const ITEM_TYPES = [
   { value: '', label: 'All types' },
   { value: 'url', label: 'Link' },
@@ -10,14 +12,37 @@ const ITEM_TYPES = [
 ]
 
 export default function SearchFilters({ filters, onFiltersChange, onReset, availableTags }) {
+  const [dateHint, setDateHint] = useState('')
+
+  const normalizeDateRange = (nextFilters) => {
+    const { createdFrom, createdTo } = nextFilters
+    if (createdFrom && createdTo) {
+      const fromValue = new Date(createdFrom)
+      const toValue = new Date(createdTo)
+      if (!Number.isNaN(fromValue) && !Number.isNaN(toValue) && fromValue > toValue) {
+        setDateHint('Adjusted dates so start comes before end.')
+        return { ...nextFilters, createdFrom: createdTo, createdTo: createdFrom }
+      }
+    }
+    setDateHint('')
+    return nextFilters
+  }
+
   const handleInputChange = (event) => {
     const { name, value } = event.target
-    onFiltersChange({ ...filters, [name]: value })
+    const nextFilters = normalizeDateRange({ ...filters, [name]: value })
+    onFiltersChange(nextFilters)
   }
 
   const handleTagChange = (event) => {
     const selected = Array.from(event.target.selectedOptions).map((option) => option.value)
-    onFiltersChange({ ...filters, tags: selected })
+    const nextFilters = normalizeDateRange({ ...filters, tags: selected })
+    onFiltersChange(nextFilters)
+  }
+
+  const handleReset = () => {
+    setDateHint('')
+    onReset()
   }
 
   return (
@@ -65,10 +90,11 @@ export default function SearchFilters({ filters, onFiltersChange, onReset, avail
         <label className="field">
           <span>Created to</span>
           <input type="date" name="createdTo" value={filters.createdTo} onChange={handleInputChange} />
+          {dateHint ? <small className="muted">{dateHint}</small> : null}
         </label>
       </div>
       <div className="filters-actions">
-        <button type="button" className="ghost" onClick={onReset}>
+        <button type="button" className="ghost" onClick={handleReset}>
           Reset
         </button>
       </div>
