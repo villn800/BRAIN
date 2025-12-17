@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { api } from '../lib/api'
 import { buildAssetUrl } from '../lib/assets'
+import { getPosterSrc, getVideoSrc, isVideoItem } from '../lib/media'
 
 function formatDate(value) {
   if (!value) {
@@ -140,10 +141,11 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
     return null
   }
 
-  const previewUrl = buildAssetUrl(item?.thumbnail_path || item?.file_path)
-  const videoUrl = item?.extra?.video_url
-  const isVideo = Boolean(videoUrl)
-  const isHlsOnly = Boolean(item?.extra?.twitter_hls_only) && !isVideo
+  const posterUrl = getPosterSrc(item)
+  const previewUrl = posterUrl || buildAssetUrl(item?.file_path)
+  const videoUrl = getVideoSrc(item)
+  const isVideo = isVideoItem(item)
+  const isHlsOnly = Boolean(item?.extra?.twitter_hls_only) && !videoUrl
   const isTwitter =
     (item?.origin_domain || '').includes('twitter.com') ||
     (item?.origin_domain || '').includes('x.com') ||
@@ -253,13 +255,16 @@ export default function ItemDetailPanel({ itemId, onClose, onDeleted }) {
             </div>
             {(isVideo || previewUrl) && (
               <div className="detail-preview" data-testid={isVideo ? 'detail-video-wrapper' : 'detail-image-wrapper'}>
-                {isVideo ? (
+                {isVideo && videoUrl ? (
                   <video
+                    className="detail-video"
                     controls
-                    poster={previewUrl || undefined}
+                    poster={posterUrl || undefined}
                     src={videoUrl}
                     aria-label={item.title}
                     data-testid="detail-video-player"
+                    playsInline
+                    preload="metadata"
                   >
                     Your browser does not support video playback.
                   </video>

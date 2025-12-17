@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { buildAssetUrl } from '../lib/assets'
+import { getPosterSrc, getVideoSrc, isVideoItem } from '../lib/media'
 import TweetCard from './TweetCard'
 
 function formatDate(value) {
@@ -18,10 +19,10 @@ function formatDate(value) {
 }
 
 export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
-  const isVideo = item?.extra?.media_kind === 'video' || Boolean(item?.extra?.video_url)
-  // Avoid using mp4 paths as <img> sources; prefer thumbnail only for videos.
-  const previewPath = isVideo ? item?.thumbnail_path : item?.thumbnail_path || item?.file_path
-  const imageUrl = buildAssetUrl(previewPath)
+  const isVideo = isVideoItem(item)
+  const videoSrc = getVideoSrc(item)
+  const posterSrc = getPosterSrc(item)
+  const imageUrl = isVideo ? posterSrc : buildAssetUrl(item?.thumbnail_path || item?.file_path)
   const isHlsOnly = Boolean(item?.extra?.twitter_hls_only) && !isVideo
   const isTwitter =
     (item?.origin_domain || '').includes('twitter.com') ||
@@ -77,6 +78,15 @@ export default function ItemCard({ item, onSelect, overlayMode = 'hover' }) {
         {isVideo ? (
           hasPreview ? (
             <img src={imageUrl} alt={item.title} loading="lazy" />
+          ) : videoSrc ? (
+            <video
+              src={videoSrc}
+              muted
+              playsInline
+              preload="metadata"
+              tabIndex={-1}
+              aria-label={item.title}
+            />
           ) : (
             <div className="media-fallback">
               <span className="pill">{item.type}</span>

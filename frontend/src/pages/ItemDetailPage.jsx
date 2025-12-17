@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { buildAssetUrl } from '../lib/assets'
+import { getPosterSrc, getVideoSrc, isVideoItem } from '../lib/media'
 
 export default function ItemDetailPage() {
   const { itemId } = useParams()
@@ -65,7 +66,10 @@ export default function ItemDetailPage() {
     return null
   }
 
-  const previewUrl = buildAssetUrl(item.thumbnail_path || item.file_path)
+  const isVideo = isVideoItem(item)
+  const posterUrl = getPosterSrc(item)
+  const videoUrl = getVideoSrc(item)
+  const previewUrl = posterUrl || buildAssetUrl(item.thumbnail_path || item.file_path)
   const downloadUrl = buildAssetUrl(item.file_path)
 
   return (
@@ -103,9 +107,22 @@ export default function ItemDetailPage() {
         ) : null}
       </div>
 
-      {previewUrl && (
+      {(isVideo || previewUrl) && (
         <div className="detail-preview">
-          <img src={previewUrl} alt={item.title} />
+          {isVideo && videoUrl ? (
+            <video
+              className="detail-video"
+              src={videoUrl}
+              poster={posterUrl || undefined}
+              controls
+              playsInline
+              preload="metadata"
+            >
+              Your browser does not support video playback.
+            </video>
+          ) : (
+            previewUrl && <img src={previewUrl} alt={item.title} />
+          )}
         </div>
       )}
 
